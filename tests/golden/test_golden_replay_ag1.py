@@ -77,6 +77,7 @@ from tests.golden.test_golden_errores_no_mostrados import (
     exencion_del_run,
     verificar_error,
 )
+from tests.golden.test_golden_replay_e4 import _sin_version
 
 pytestmark = [pytest.mark.golden, requiere_mediciones]
 
@@ -235,10 +236,11 @@ def _cambios(antes: ReporteInforme, despues: ReporteInforme) -> list[dict[str, A
     for n, m in _correspondencia(antes, despues):
         a, d = antes.resultados[n], despues.resultados[m]
         # Fuera de lo que decide 4e, todo igual (emparejamiento, confianza, justificación).
-        assert a.model_dump(mode="json", exclude=_SOLO_4E | _MARCA) == d.model_dump(
-            mode="json", exclude=_SOLO_4E | _MARCA), n
-        if a.model_dump(mode="json", exclude=_MARCA) == d.model_dump(mode="json",
-                                                                     exclude=_MARCA):
+        # Sin el motivo de cada Diferencia (0.12.0), que AG1 no trae.
+        assert _sin_version(a.model_dump(mode="json", exclude=_SOLO_4E | _MARCA)) == (
+            _sin_version(d.model_dump(mode="json", exclude=_SOLO_4E | _MARCA))), n
+        if _sin_version(a.model_dump(mode="json", exclude=_MARCA)) == _sin_version(
+                d.model_dump(mode="json", exclude=_MARCA)):
             continue
         salida.append({
             "idx_ag1": n, "estado_antes": a.estado.value, "estado_despues": d.estado.value,

@@ -34,6 +34,7 @@ from comparador.schemas import (
     FuenteEvidencia,
     Hallazgo,
     MatchResult,
+    MotivoDiferencia,
     TipoMatch,
 )
 
@@ -240,6 +241,7 @@ class TestPolaridadEnMatching:
             "Polaridad opuesta: el PDF indica que cumple y el Excel que no cumple"
         )
         assert "0.93" in detalle
+        assert r.diferencias[0].motivo == MotivoDiferencia.POLARIDAD_OPUESTA
         assert r.equivalencias_redaccion == []
         # El emparejamiento no se toca.
         assert r.tipo_match == TipoMatch.UNICIDAD
@@ -383,6 +385,7 @@ class TestControlCodigos:
         assert r.diferencias[0].detalle == (
             "Código o número distinto: el PDF dice «50N» y el Excel «67N» (similitud "
             "semántica 0.97; la similitud no distingue un código cambiado)")
+        assert r.diferencias[0].motivo == MotivoDiferencia.CODIGO_CAMBIADO
         assert r.equivalencias_redaccion == []
         # El emparejamiento no se toca y no hubo llamadas.
         assert (r.tipo_match, r.confianza) == (TipoMatch.UNICIDAD, 1.0)
@@ -535,6 +538,7 @@ class TestJuezRedaccion:
             "Similitud semántica 0.80, bajo el umbral de coincidencia 0.85; el juez "
             "de redacción concluyó que el contenido difiere: justificación 1"
         )
+        assert r.diferencias[0].motivo == MotivoDiferencia.JUEZ_REDACCION
 
     def test_decide_por_campo_y_conserva_el_orden(
         self, similitudes: dict[tuple[str, str], float], juez: JuezRedaccionFake

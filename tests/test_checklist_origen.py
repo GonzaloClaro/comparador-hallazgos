@@ -142,6 +142,8 @@ def test_referencias_apuntan_a_rutas_del_repo_o_privadas_conocidas() -> None:
     assert malas == []
 
 
+@pytest.mark.skip(
+    reason="repo público: el historial privado con los commits que cita el origen no se publica")
 def test_commits_existen_en_git() -> None:
     if not (ROOT / ".git").exists():
         pytest.skip("sin .git (copia sin historia): no se pueden comprobar los commits")

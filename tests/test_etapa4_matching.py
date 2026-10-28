@@ -31,6 +31,7 @@ from comparador.schemas import (
     Evidencia,
     FuenteEvidencia,
     Hallazgo,
+    MotivoDiferencia,
     TipoMatch,
 )
 
@@ -201,6 +202,7 @@ class TestCamposVacios:
         assert r.estado == EstadoHallazgo.DIFIERE
         assert [d.campo for d in r.diferencias] == [CampoDiferente.ACCION_CORRECTIVA]
         assert r.diferencias[0].detalle == "Con contenido solo en el Excel (vacío en el PDF)"
+        assert r.diferencias[0].motivo == MotivoDiferencia.VACIO_UN_LADO
 
     def test_cache_no_embebe_strings_vacios(self, monkeypatch: pytest.MonkeyPatch):
         # La API de embeddings rechaza "" — nunca debe llegar al batch.
@@ -442,6 +444,7 @@ class TestDeteccionDiferencias:
             CampoDiferente.ACCION_CORRECTIVA,
             CampoDiferente.CALIFICACION,
         ]
+        assert r.diferencias[2].motivo == MotivoDiferencia.CALIFICACION_DISTINTA
 
     def test_detalle_similitud_incluye_umbral(
         self, embeddings_fake: None, juez_prohibido: None
@@ -460,6 +463,7 @@ class TestDeteccionDiferencias:
             f"Similitud semántica 0.00, bajo el umbral de coincidencia "
             f"{settings.threshold_descripcion:.2f}"
         )
+        assert d.motivo == MotivoDiferencia.SIMILITUD_BAJA
 
 
 @pytest.mark.usefixtures("ambos_modos")

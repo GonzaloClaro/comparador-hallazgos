@@ -43,6 +43,7 @@ from comparador.schemas import (
     ItemChecklist,
     MatchResult,
     MetadatosInforme,
+    MotivoDiferencia,
     MotivoIncorrecto,
     ReporteInforme,
     ResultadoChecklist,
@@ -262,9 +263,9 @@ class TestReporte060:
         assert "Subestación Prueba" in cabecera
         assert "3 paños" in cabecera  # sin la fila transversal
         assert _titulos_panos(at) == [
-            "Paño C1 · 1 hallazgos · 0 OK",
-            "Paño C2 · 2 hallazgos · 2 OK · 1 con redacción distinta",
-            "Paño C3 · 2 hallazgos · 0 OK · 🔴 1 falta en Excel",
+            "Paño C1 · 1 hallazgo = 🟡 1 difiere",
+            "Paño C2 · 2 hallazgos = ✅ 2 coinciden (1 con redacción distinta)",
+            "Paño C3 · 2 hallazgos = 🔴 1 falta en Excel + 🟠 1 falta en el PDF",
         ]
         assert _expander(at, "Checklist de aprobación").label.startswith(
             "Checklist de aprobación · 1/38 cumplen")
@@ -276,12 +277,13 @@ class TestReporte060:
 
         _selectbox(at, "Estado").select("difiere").run()
         assert not at.exception
-        assert _titulos_panos(at) == ["Paño C1 · 1 hallazgos · 0 OK"]  # el filtro aplicó
+        assert _titulos_panos(at) == ["Paño C1 · 1 hallazgo = 🟡 1 difiere"]  # el filtro aplicó
         assert _tiles(at) == antes == TILES_060
 
         _selectbox(at, "Estado").select("Todos").run()
         _selectbox(at, "Paño").select("C3").run()
-        assert _titulos_panos(at) == ["Paño C3 · 2 hallazgos · 0 OK · 🔴 1 falta en Excel"]
+        assert _titulos_panos(at) == [
+            "Paño C3 · 2 hallazgos = 🔴 1 falta en Excel + 🟠 1 falta en el PDF"]
         assert _tiles(at) == TILES_060
 
     def test_orden_de_diferencias_descripcion_accion_calificacion(self, runs_dir: Path) -> None:
@@ -320,7 +322,7 @@ class TestReporte060:
 
         assert _tiles(at)["Coinciden"] == ("2", "1 con redacción distinta")
         c2 = _expander(at, "Paño C2")
-        assert c2.label.endswith("· 1 con redacción distinta")
+        assert c2.label.endswith("✅ 2 coinciden (1 con redacción distinta)")
         (tabla,) = c2.dataframe
         assert list(tabla.value["Comentario"]) == [
             "✅ Coincide · redacción distinta", "✅ Coincide",
@@ -816,7 +818,7 @@ class TestReporte050:
         assert reporte.resumen.coinciden_con_redaccion_distinta == 0
         # Mismos totales; sin la variante "redacción distinta" (no existía en 0.5.0).
         assert _tiles(at) == {**TILES_060, "Coinciden": ("2", "")}
-        assert _titulos_panos(at)[1] == "Paño C2 · 2 hallazgos · 2 OK"
+        assert _titulos_panos(at)[1] == "Paño C2 · 2 hallazgos = ✅ 2 coinciden"
         (tabla,) = _expander(at, "Paño C2").dataframe
         assert list(tabla.value["Comentario"]) == ["✅ Coincide", "✅ Coincide"]
         assert _expander(at, "⚪ Filas transversales del Excel")
@@ -1649,3 +1651,70 @@ def _reporte_descripcion_identica() -> ReporteInforme:
                                  subestacion="Subestación Prueba", informe_id="AUD-030")
     return consolidar_reporte([par], metadatos, EmpresaAuditora.RELIABLE_ENERGY).model_copy(
         update={"fecha_procesamiento": datetime(2026, 10, 26)})
+
+
+class TestMotivoDiferencia0120:
+    """Schema 0.12.0: la columna Comentario dice por qué difiere cada campo de texto
+    (Diferencia.motivo, lo decide la Etapa 4), y la guía explica cómo leerlo. Un
+    reporte sin motivo (anterior a 0.12.0) se ve como antes (TestReporte060)."""
+
+    def test_comentario_con_el_motivo_y_la_guia(self, runs_dir: Path) -> None:
+        reporte = _reporte_descripcion_identica()
+        par = reporte.resultados[0]
+        diferencias = [
+            Diferencia(campo=CampoDiferente.DESCRIPCION, valor_pdf="Cumple",
+                       valor_excel="No cumple", motivo=MotivoDiferencia.POLARIDAD_OPUESTA),
+            Diferencia(campo=CampoDiferente.ACCION_CORRECTIVA, valor_pdf="Ajustar 50N",
+                       valor_excel="Ajustar 67N", motivo=MotivoDiferencia.CODIGO_CAMBIADO),
+            *par.diferencias,
+        ]
+        reporte = reporte.model_copy(update={"resultados": [
+            par.model_copy(update={"diferencias": diferencias})]})
+
+        at = _abrir(reporte)
+
+        assert not at.exception
+        (tabla,) = _expander(at, "Paño C9").dataframe
+        assert list(tabla.value["Comentario"]) == [
+            "🟡 Difiere: Descripción (Cumple vs No cumple) · Acción correctiva "
+            "(código o número distinto) · Calificación: Relevante vs Menor"
+        ]
+        guia = " ".join(m.value for m in _expander(at, "📖 Guía de lectura").markdown)
+        assert "Cómo leer un 🟡 Difiere en la columna Comentario" in guia
+
+    def test_cada_motivo_de_texto_tiene_etiqueta(self) -> None:
+        etiquetas = re.search(r"ETIQUETA_MOTIVO_DIFERENCIA = \{(.*?)\}",
+                              APP.read_text(encoding="utf-8"), re.S).group(1)
+        for motivo in MotivoDiferencia:
+            if motivo != MotivoDiferencia.CALIFICACION_DISTINTA:
+                assert f"MotivoDiferencia.{motivo.name}.value" in etiquetas, motivo
+
+
+class TestTituloDelPano:
+    """El título del paño colapsado desglosa su total por estado, con los colores de
+    los estados, y la suma da el total (decisión del usuario 2026-10-27)."""
+
+    def test_los_cuatro_estados_suman_el_total(self, runs_dir: Path) -> None:
+        rele = "SEL 451"
+        par = _reporte_descripcion_identica().resultados[0]
+        coincide = par.model_copy(update={"estado": EstadoHallazgo.COINCIDE, "diferencias": []})
+        resultados = [
+            par, coincide, coincide,
+            MatchResult(pano="C9", rele=rele, estado=EstadoHallazgo.FALTA_EN_EXCEL,
+                        tipo_match=TipoMatch.SIN_MATCH, confianza=0.0, justificacion="j",
+                        hallazgo_pdf=_pdf("C9", rele, "Sin ajuste de la 79"), hallazgo_excel=None),
+            MatchResult(pano="C9", rele=rele, estado=EstadoHallazgo.EXTRA_EN_EXCEL,
+                        tipo_match=TipoMatch.SIN_MATCH, confianza=0.0, justificacion="j",
+                        hallazgo_pdf=None,
+                        hallazgo_excel=_excel("C9", rele, "Sin registro de eventos")),
+        ]
+        metadatos = MetadatosInforme(coordinado="Coordinado de Prueba",
+                                     subestacion="Subestación Prueba", informe_id="AUD-031")
+        reporte = consolidar_reporte(resultados, metadatos, EmpresaAuditora.RELIABLE_ENERGY)
+
+        at = _abrir(reporte)
+
+        assert not at.exception
+        assert _titulos_panos(at) == [
+            "Paño C9 · 5 hallazgos = ✅ 2 coinciden + 🟡 1 difiere + 🔴 1 falta en Excel"
+            " + 🟠 1 falta en el PDF"]

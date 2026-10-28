@@ -49,6 +49,7 @@ from comparador.schemas import (
     FeedbackRun,
     ItemChecklist,
     MatchResult,
+    MotivoDiferencia,
     MotivoFeedback,
     MotivoIncorrecto,
     ReporteInforme,
@@ -125,6 +126,18 @@ ETIQUETA_CAMPO = {
     CampoDiferente.DESCRIPCION.value: "Descripción",
     CampoDiferente.ACCION_CORRECTIVA.value: "Acción correctiva",
     CampoDiferente.CALIFICACION.value: "Calificación",
+}
+
+# Motivo de cada Diferencia (Diferencia.motivo, lo decide la Etapa 4), entre
+# paréntesis en la columna Comentario. La calificación ya muestra sus valores; un
+# reporte anterior a 0.12.0 no trae motivo y se ve como antes.
+ETIQUETA_MOTIVO_DIFERENCIA = {
+    MotivoDiferencia.VACIO_UN_LADO.value: "vacío en un lado",
+    MotivoDiferencia.SIN_EMBEDDINGS.value: "sin comparar: revisar",
+    MotivoDiferencia.SIMILITUD_BAJA.value: "textos poco parecidos",
+    MotivoDiferencia.POLARIDAD_OPUESTA.value: "Cumple vs No cumple",
+    MotivoDiferencia.CODIGO_CAMBIADO.value: "código o número distinto",
+    MotivoDiferencia.JUEZ_REDACCION.value: "contenido distinto",
 }
 
 # Interpretación del emparejamiento en el punto de decisión (condensa la
@@ -893,6 +906,31 @@ GUIA_ESTADOS = (
     "**Revisión manual**. |\n"
 )
 
+GUIA_DIFIERE = (
+    "\n**Cómo leer un 🟡 Difiere en la columna Comentario.** Después de los dos "
+    "puntos van los campos que no coinciden, en el orden descripción → acción "
+    "correctiva → calificación, separados por «·». Entre paréntesis, por qué:\n\n"
+    "| Lo que ves | Qué significa |\n"
+    "|---|---|\n"
+    "| Calificación: Menor vs Relevante | El PDF dice **Menor** y el Excel "
+    "**Relevante** (siempre primero el PDF). |\n"
+    "| … (Cumple vs No cumple) | Un lado dice que cumple y el otro que no. Siempre es "
+    "Difiere, sin IA. |\n"
+    "| … (código o número distinto) | Los textos son casi iguales, pero cambia un "
+    "código o número (p. ej. «50N» en el PDF y «67N» en el Excel). Sin IA. |\n"
+    "| … (contenido distinto) | Los textos se parecen poco y el juez de redacción (IA) "
+    "concluyó que no dicen lo mismo. |\n"
+    "| … (textos poco parecidos) | Los textos se parecen poco y no pasaron por el juez "
+    "de redacción (por ejemplo, porque el emparejamiento es dudoso). |\n"
+    "| … (vacío en un lado) | El campo tiene texto en un archivo y está vacío en el "
+    "otro. |\n"
+    "| … (sin comparar: revisar) | No se pudo medir el parecido; revisar a mano. |\n"
+    "| (revisar) al inicio | El emparejamiento es dudoso: confirmar primero que esa "
+    "fila del Excel es la de este hallazgo. |\n\n"
+    "Los dos textos completos y el motivo con detalle (por ejemplo, qué código "
+    "cambió) están al abrir el hallazgo, en **Diferencias detectadas**.\n"
+)
+
 GUIA_CONFIANZA_TIPOS = (
     "**Confianza** = qué tan seguro está el sistema de que emparejó el hallazgo "
     "correcto (que este hallazgo del PDF corresponde a ese del Excel). Es sobre "
@@ -1031,7 +1069,7 @@ def _guia(r: ReporteInforme) -> None:
     with st.expander("📖 Guía de lectura — estados, confianza, citas, checklist y feedback"):
         tabs = st.tabs(["Estados", "Match y confianza", "Citas", "Checklist", "Feedback"])
         with tabs[0]:
-            st.markdown(GUIA_ESTADOS)
+            st.markdown(GUIA_ESTADOS + GUIA_DIFIERE)
         with tabs[1]:
             st.markdown(GUIA_CONFIANZA_TIPOS + (GUIA_EMPAREJAMIENTO_DUDOSO if dudoso else "")
                         + GUIA_CONFIANZA_RUBRICA)
@@ -1083,20 +1121,7 @@ def _resultados_por_pano(r: ReporteInforme) -> None:
         if not grupo:
             continue
 
-        ok = sum(1 for _, m in grupo if m.estado == EstadoHallazgo.COINCIDE)
-        falta = sum(1 for _, m in grupo if m.estado == EstadoHallazgo.FALTA_EN_EXCEL)
-        # "Coincide · redacción distinta" es una decisión automática del juez
-        # que la revisora valida: el paño sigue colapsado si todo coincide
-        # (§9.1), pero el título lo avisa (decisión del usuario 2026-10-17).
-        redaccion = sum(
-            1 for _, m in grupo
-            if m.estado == EstadoHallazgo.COINCIDE and m.equivalencias_redaccion
-        )
-        titulo = f"Paño {pano} · {len(grupo)} hallazgos · {ok} OK"
-        if redaccion:
-            titulo += f" · {redaccion} con redacción distinta"
-        if falta:
-            titulo += f" · 🔴 {falta} falta en Excel"
+        titulo = _titulo_pano(pano, [m for _, m in grupo])
 
         # Colapso inicial (DISENO §9.1): colapsado solo si todo coincide.
         expandido_default = any(m.estado != EstadoHallazgo.COINCIDE for _, m in grupo)
@@ -1330,6 +1355,37 @@ def _desc(m: MatchResult) -> str:
     return h.descripcion if h else ""
 
 
+# Título del paño colapsado (DISENO §9.1, decisión del usuario 2026-10-27): el total y
+# su desglose por estado, con los colores de ETIQUETA_ESTADO, para ver qué hay dentro
+# sin abrirlo. Los segmentos en 0 se omiten; la suma da el total del paño (sin las
+# filas transversales, que tienen su propia sección).
+SEGMENTOS_TITULO_PANO = (
+    (EstadoHallazgo.COINCIDE, "✅", "coincide", "coinciden"),
+    (EstadoHallazgo.DIFIERE, "🟡", "difiere", "difieren"),
+    (EstadoHallazgo.FALTA_EN_EXCEL, "🔴", "falta en Excel", "faltan en Excel"),
+    (EstadoHallazgo.EXTRA_EN_EXCEL, "🟠", "falta en el PDF", "faltan en el PDF"),
+)
+
+
+def _titulo_pano(pano: str, grupo: list[MatchResult]) -> str:
+    segmentos = []
+    for estado, icono, singular, plural in SEGMENTOS_TITULO_PANO:
+        n = sum(1 for m in grupo if m.estado == estado)
+        if not n:
+            continue
+        segmento = f"{icono} {n} {singular if n == 1 else plural}"
+        if estado == EstadoHallazgo.COINCIDE:
+            # "Coincide · redacción distinta" es una decisión automática del juez
+            # que la revisora valida: el paño sigue colapsado si todo coincide
+            # (§9.1), pero el título lo avisa (decisión del usuario 2026-10-17).
+            redaccion = sum(1 for m in grupo if m.estado == estado and m.equivalencias_redaccion)
+            if redaccion:
+                segmento += f" ({redaccion} con redacción distinta)"
+        segmentos.append(segmento)
+    total = f"{len(grupo)} hallazgo{'' if len(grupo) == 1 else 's'}"
+    return f"Paño {pano} · {total} = " + " + ".join(segmentos)
+
+
 def _comentario(m: MatchResult) -> str:
     """Columna Comentario (DISENO §9.1): en 'difiere' lista los campos que
     difieren; calificación con valores inline por ser cortos. Prefijo
@@ -1338,7 +1394,8 @@ def _comentario(m: MatchResult) -> str:
         partes = [
             f"{ETIQUETA_CAMPO[d.campo.value]}: {d.valor_pdf} vs {d.valor_excel}"
             if d.campo == CampoDiferente.CALIFICACION
-            else ETIQUETA_CAMPO[d.campo.value]
+            else ETIQUETA_CAMPO[d.campo.value] + (
+                f" ({ETIQUETA_MOTIVO_DIFERENCIA[d.motivo.value]})" if d.motivo else "")
             for d in m.diferencias
         ]
         base = "🟡 Difiere: " + " · ".join(partes)

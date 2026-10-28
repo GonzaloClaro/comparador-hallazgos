@@ -5,6 +5,8 @@
 
 # Comparador de hallazgos PDF vs Excel — documento de diseño
 
+> Versión: 0.32 (2026-10-27, sin cambios de schema, decisión del usuario: el título del paño colapsado desglosa su total por estado con los íconos de cada uno, «Paño C3 · 7 hallazgos = ✅ 4 coinciden + 🟡 1 difiere + 🔴 1 falta en Excel + 🟠 1 falta en el PDF» (§9.1))
+> Versión: 0.31 (2026-10-27, schema 0.12.0 compatible, decisión del usuario: `Diferencia.motivo` (`MotivoDiferencia`), por qué E4 marcó cada campo, para que la columna Comentario de Streamlit lo muestre sin interpretar el detalle (invariante 24) y la guía de lectura explique cada rótulo (§4, §9.1))
 > Versión: 0.30 (cierre del paso 6, 2026-10-27, sin cambios de schema, decisiones del usuario: (1) 4f, las copias del mismo origen de un par desdoblado por paño se igualan del lado seguro (M34, `UNIFICAR_COPIAS`, encendido por defecto; §5 4f, invariante 19f); (2) `JUEZ_JUSTIFICA_PRIMERO` (M32), el juez de emparejamiento justifica antes de elegir: medido con Opus, no cambió ninguna elección y queda apagado (§5 4b); (3) `a_perdidos` cuenta cada error una vez (§10); (4) `comparador.sensibilidad_checklist`, la parte del checklist de M43 (§10))
 > Versión: 0.29 (M28 V2, 2026-10-27, sin cambios de schema, decisión del usuario: el punto ciego de M43. En 4e, sobre el umbral, un código o número sustituido entre el PDF y el Excel (un término con dígito en cada lado que el otro no tiene: «50N» → «67N», «2,50» → «0,50», «paño E5» → «paño C3») es Diferencia sin LLM, como la polaridad, con `CONTROL_CODIGOS` encendido por defecto; medido sin API sobre todo lo guardado (§5 4e, §10, §11 punto 3; invariante 19e(d)))
 > Versión: 0.28 (M43, paso 6, 2026-10-27, sin cambios de schema ni del pipeline: `comparador.sensibilidad`, el arnés que planta errores conocidos en copias del etapa2 de los runs de B2 y repite E4 para medir la sensibilidad del comparador; `metricas_lote` regenera `sensibilidad_m43.csv` (§10))
@@ -253,11 +255,21 @@ class CampoDiferente(str, Enum):
     ACCION_CORRECTIVA = "accion_correctiva"
     CALIFICACION = "calificacion"
 
+class MotivoDiferencia(str, Enum):      # 0.12.0: lo decide E4, la UI solo lo rotula
+    CALIFICACION_DISTINTA = "calificacion_distinta"
+    VACIO_UN_LADO = "vacio_un_lado"      # contenido solo en el PDF o solo en el Excel
+    SIN_EMBEDDINGS = "sin_embeddings"    # no se pudo comparar; revisar a mano
+    SIMILITUD_BAJA = "similitud_baja"    # bajo el umbral, sin juez de redacción
+    POLARIDAD_OPUESTA = "polaridad_opuesta"  # 4e(a)
+    CODIGO_CAMBIADO = "codigo_cambiado"  # 4e(d)
+    JUEZ_REDACCION = "juez_redaccion"    # el juez concluyó que el contenido difiere (4e, 4f)
+
 class Diferencia(BaseModel):
     campo: CampoDiferente
     valor_pdf: str
     valor_excel: str
     detalle: str | None = None           # justificación textual cuando aplique
+    motivo: MotivoDiferencia | None = None  # por qué la marcó E4 (0.12.0); None antes
 
 class MatchResult(BaseModel):
     schema_version: str = "0.2.0"
@@ -1789,7 +1801,7 @@ Cada tile muestra el label arriba en tamaño pequeño y el número grande debajo
 
 Las secciones de paños que tienen al menos un hallazgo con `estado != "coincide"` se muestran **expandidas por defecto**. Los paños donde todo coincide se muestran **colapsados por defecto**. Esto enfoca la atención del revisor en lo que requiere revisión sin que tenga que filtrar manualmente.
 
-**Coincidencias con redacción distinta (decisión del usuario 2026-10-17):** un `coincide` con `equivalencias_redaccion` cuenta como coincide para el colapso — un paño donde todo coincide sigue colapsado —, pero como es una decisión automática del juez de redacción que la revisora debe validar, el header del paño lo avisa: `"Paño {pano} · {n} hallazgos · {n} OK · {n} con redacción distinta"` (el segmento se omite si es 0). Se eligió avisar en el título en vez de expandir, para no cambiar la regla de colapso.
+**Coincidencias con redacción distinta (decisión del usuario 2026-10-17):** un `coincide` con `equivalencias_redaccion` cuenta como coincide para el colapso — un paño donde todo coincide sigue colapsado —, pero como es una decisión automática del juez de redacción que la revisora debe validar, el header del paño lo avisa dentro del segmento de los que coinciden: `"✅ {n} coinciden ({n} con redacción distinta)"`. **Título del paño (decisión del usuario 2026-10-27):** el total y su desglose por estado, con los íconos de cada estado, para ver qué hay dentro con la vista colapsada: `"Paño {pano} · {n} hallazgos = ✅ {n} coinciden + 🟡 {n} difieren + 🔴 {n} faltan en Excel + 🟠 {n} faltan en el PDF"`, en singular cuando es 1; los segmentos en 0 se omiten y la suma da el total del paño (sin transversales). Con un filtro aplicado, cuenta lo que queda a la vista. Se eligió avisar en el título en vez de expandir, para no cambiar la regla de colapso.
 
 #### Sección de filas transversales (2026-07-16)
 
@@ -1834,7 +1846,7 @@ Las columnas y su contenido por orden de aparición:
 | Estado | Texto base |
 |---|---|
 | `coincide` | "Coincide"; "Coincide · redacción distinta" si trae `equivalencias_redaccion` |
-| `difiere` | Listar los campos diferentes. Ej: "Criticidad: Relevante vs Menor" o "Descripción difiere" o "Acción correctiva difiere" |
+| `difiere` | "Difiere: " y los campos diferentes en el orden de la invariante 16, separados por " · ". La calificación lleva sus valores, PDF primero ("Calificación: Relevante vs Menor"); la descripción y la acción llevan entre paréntesis el rótulo de su `motivo` (0.12.0): "Descripción (Cumple vs No cumple)", "Acción correctiva (código o número distinto)", "(contenido distinto)", "(textos poco parecidos)", "(vacío en un lado)", "(sin comparar: revisar)". Sin `motivo` (reporte anterior), solo el nombre del campo. La guía de lectura explica cada rótulo en la pestaña "Estados" (solo Streamlit) |
 | `falta_en_excel` | "⚠ Falta en Excel" con ícono de alerta |
 | `extra_en_excel` | "⚠ Extra en Excel" |
 

@@ -112,8 +112,9 @@ def test_b2_cambia_solo_la_accion_de_alfa(caso: Caso, tmp_path: Path) -> None:
 
     assert (meta["control_codigos"], meta["cache_jueces"]["pagadas"]) == (True, 0)
     # Por el schema de hoy, como test_golden_replay_e4 (la base es de un schema anterior).
-    esperado, repetido = (ReporteInforme.model_validate_json(
-        (d / "reporte_final.json").read_text(encoding="utf-8")).model_dump(mode="json")
+    # Sin el motivo de cada Diferencia (0.12.0), que la base no trae.
+    esperado, repetido = (_sin_version(ReporteInforme.model_validate_json(
+        (d / "reporte_final.json").read_text(encoding="utf-8")).model_dump(mode="json"))
         for d in (base, salida))
     nuevas = set()
     for antes, despues in zip(esperado["resultados"], repetido["resultados"], strict=True):

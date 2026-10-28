@@ -290,10 +290,14 @@ _NUMERO = re.compile(r"\d+\.\d+")
 
 
 def _sin_version(dato: Any) -> Any:
-    """El JSON sin schema_version a ninguna profundidad: la base se guardó con el
-    schema de su momento y la versión no es fondo del resultado."""
+    """El JSON sin schema_version a ninguna profundidad, ni el motivo de cada
+    Diferencia (0.12.0): la base se guardó con el schema de su momento, y ni la
+    versión ni el rótulo del motivo, que repite lo que dice el detalle, son fondo
+    del resultado."""
     if isinstance(dato, dict):
-        return {k: _sin_version(v) for k, v in dato.items() if k != "schema_version"}
+        diferencia = "campo" in dato and "valor_pdf" in dato
+        return {k: _sin_version(v) for k, v in dato.items()
+                if k != "schema_version" and not (diferencia and k == "motivo")}
     if isinstance(dato, list):
         return [_sin_version(v) for v in dato]
     return dato

@@ -4,6 +4,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# 0.12.0 (2026-10-27, compatible: solo un campo opcional nuevo): Diferencia.motivo
+# (MotivoDiferencia), por qué E4 marcó el campo, para que la UI lo muestre sin
+# interpretar el detalle. Los reportes anteriores cargan con motivo None.
 # 0.11.0 (2026-10-26): TipoMatch "descripcion_identica" (M30, interruptor
 # DESCRIPCION_IDENTICA): par de descripción idéntica emparejado sin juez. Los
 # reportes anteriores cargan; uno 0.11.0 con ese tipo no carga en código anterior.
@@ -34,7 +37,7 @@ from pydantic import BaseModel, Field
 # 0.4.0: checklist de aprobación (38 puntos) opcional en ReporteInforme.
 # 0.3.0: calificacion y accion_correctiva opcionales — los Excel reales de
 # algunas auditoras (Ensaut/Epsilon 2026-07-07) no traen esas columnas.
-SCHEMA_VERSION = "0.11.0"
+SCHEMA_VERSION = "0.12.0"
 
 
 # --- Enums ---
@@ -80,6 +83,18 @@ class CampoDiferente(StrEnum):
     DESCRIPCION = "descripcion"
     ACCION_CORRECTIVA = "accion_correctiva"
     CALIFICACION = "calificacion"
+
+
+class MotivoDiferencia(StrEnum):
+    """Por qué la Etapa 4 marcó un campo como Diferencia (el detalle lo explica)."""
+
+    CALIFICACION_DISTINTA = "calificacion_distinta"
+    VACIO_UN_LADO = "vacio_un_lado"          # contenido solo en el PDF o solo en el Excel
+    SIN_EMBEDDINGS = "sin_embeddings"        # no se pudo comparar; revisar a mano
+    SIMILITUD_BAJA = "similitud_baja"        # bajo el umbral, sin juez de redacción
+    POLARIDAD_OPUESTA = "polaridad_opuesta"  # «cumple» frente a «no cumple» (4e)
+    CODIGO_CAMBIADO = "codigo_cambiado"      # código o número sustituido (4e)
+    JUEZ_REDACCION = "juez_redaccion"        # el juez concluyó que el contenido difiere
 
 
 class EstadoCita(StrEnum):
@@ -178,6 +193,7 @@ class Diferencia(BaseModel):
     valor_pdf: str
     valor_excel: str
     detalle: str | None = None
+    motivo: MotivoDiferencia | None = None  # None en reportes anteriores a 0.12.0
 
 
 class EquivalenciaRedaccion(BaseModel):

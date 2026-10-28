@@ -16,6 +16,7 @@ from comparador.schemas import (
     Hallazgo,
     MatchResult,
     MetadatosInforme,
+    MotivoDiferencia,
     PanoDescubierto,
     ReleDescubierto,
     ReporteInforme,
@@ -540,8 +541,7 @@ class TestDescripcionIdentica:
     idéntica emparejado sin juez. Un valor nuevo del enum: los reportes anteriores
     cargan, y el par no es un emparejamiento dudoso."""
 
-    def test_version_y_valor(self):
-        assert SCHEMA_VERSION == "0.11.0"
+    def test_valor(self):
         assert TipoMatch("descripcion_identica") is TipoMatch.DESCRIPCION_IDENTICA
 
     def test_no_es_dudoso_y_hace_roundtrip(self):
@@ -598,3 +598,23 @@ class TestOtrosRelesNombrados:
         assert m.hallazgo_pdf is not None and m.hallazgo_excel is not None
         assert m.hallazgo_pdf.evidencia.otros_reles_nombrados is None
         assert m.hallazgo_excel.evidencia.otros_reles_nombrados is None
+
+
+class TestMotivoDiferencia:
+    """Schema 0.12.0 (2026-10-27): cada Diferencia dice por qué la marcó la Etapa 4,
+    para que la UI lo muestre sin interpretar el detalle. Campo opcional: un reporte
+    0.11.0 sigue cargando, con motivo None."""
+
+    def test_version_default_y_roundtrip(self):
+        assert SCHEMA_VERSION == "0.12.0"
+        d = Diferencia(campo=CampoDiferente.DESCRIPCION, valor_pdf="a", valor_excel="b")
+        assert d.motivo is None
+        d = d.model_copy(update={"motivo": MotivoDiferencia.CODIGO_CAMBIADO})
+        data = json.loads(d.model_dump_json())
+        assert data["motivo"] == "codigo_cambiado"
+        assert Diferencia.model_validate(data) == d
+
+    def test_diferencia_0110_carga_sin_el_campo(self):
+        viejo = Diferencia.model_validate(
+            {"campo": "descripcion", "valor_pdf": "a", "valor_excel": "b", "detalle": "x"})
+        assert viejo.motivo is None

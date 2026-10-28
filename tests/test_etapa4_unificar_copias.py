@@ -33,6 +33,7 @@ from comparador.schemas import (
     FuenteEvidencia,
     Hallazgo,
     MatchResult,
+    MotivoDiferencia,
     TipoMatch,
 )
 from tests.test_etapa4_matching import _hallazgo, embeddings_fake, juez_prohibido  # noqa: F401
@@ -138,6 +139,7 @@ class TestRedaccion:
         assert "el Excel agrega otro incumplimiento" in (d.detalle or "")
         assert "Mismo incumplimiento, otra redacción." in (d.detalle or "")
         assert "concluyó que el contenido difiere" not in (d.detalle or "")
+        assert d.motivo == MotivoDiferencia.JUEZ_REDACCION
         assert b == dif
 
     def test_la_copia_que_queda_dudosa_no_se_adjudica_como_parafrasis(self) -> None:

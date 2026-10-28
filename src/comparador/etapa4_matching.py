@@ -50,6 +50,7 @@ from comparador.schemas import (
     EstadoHallazgo,
     Hallazgo,
     MatchResult,
+    MotivoDiferencia,
     TipoMatch,
 )
 
@@ -190,6 +191,7 @@ def _comparar_campo_semantico(
             valor_pdf=valor_pdf,
             valor_excel=valor_excel,
             detalle=f"Con contenido solo en el {lado_lleno} (vacío en el {lado_vacio})",
+            motivo=MotivoDiferencia.VACIO_UN_LADO,
         )
 
     emb_pdf = emb_cache.get(valor_pdf)
@@ -200,6 +202,7 @@ def _comparar_campo_semantico(
             valor_pdf=valor_pdf,
             valor_excel=valor_excel,
             detalle="No se pudo comparar automáticamente (sin embeddings); revisar manualmente",
+            motivo=MotivoDiferencia.SIN_EMBEDDINGS,
         )
 
     similitud = similitud_coseno(emb_pdf, emb_excel)
@@ -209,6 +212,7 @@ def _comparar_campo_semantico(
             valor_pdf=valor_pdf,
             valor_excel=valor_excel,
             detalle=_detalle_bajo_umbral(similitud, threshold),
+            motivo=MotivoDiferencia.SIMILITUD_BAJA,
         )
     return None
 
@@ -252,6 +256,7 @@ def _detectar_diferencias(
             campo=CampoDiferente.CALIFICACION,
             valor_pdf=h_pdf.calificacion.value,
             valor_excel=h_excel.calificacion.value,
+            motivo=MotivoDiferencia.CALIFICACION_DISTINTA,
         ))
 
     return diferencias
@@ -821,6 +826,7 @@ def _diferencia_codigo(campo: CampoDiferente, valor_pdf: str, valor_excel: str,
             f"(similitud semántica {similitud:.2f}; la similitud no distingue un código "
             "cambiado)"
         ),
+        motivo=MotivoDiferencia.CODIGO_CAMBIADO,
     )
 
 
@@ -1095,6 +1101,7 @@ def _revisar_redaccion(
                         f"{lado_no} que no cumple (similitud semántica {similitud:.2f}; "
                         "la similitud no distingue la negación)"
                     ),
+                    motivo=MotivoDiferencia.POLARIDAD_OPUESTA,
                 )
             elif similitud >= _threshold_campo(campo):
                 sustituidos = (_terminos_sustituidos(valor_pdf, valor_excel)
@@ -1148,6 +1155,7 @@ def _revisar_redaccion(
                     valor_pdf=valor_pdf,
                     valor_excel=valor_excel,
                     detalle=f"{detalle}; {CONCLUYO_DIFIERE}{veredicto.justificacion}",
+                    motivo=MotivoDiferencia.JUEZ_REDACCION,
                 )
 
         # El orden de declaración de CampoDiferente ES el orden obligatorio
@@ -1223,8 +1231,10 @@ def _a_diferencia(r: MatchResult, cambios: dict[CampoDiferente, str]) -> MatchRe
     por_campo = {d.campo: d for d in r.diferencias}
     for e in r.equivalencias_redaccion:
         if e.campo in cambios:
+            # 4f: el «difiere» del juez de redacción en otra copia del mismo origen.
             por_campo[e.campo] = Diferencia(campo=e.campo, valor_pdf=e.valor_pdf,
-                                            valor_excel=e.valor_excel, detalle=cambios[e.campo])
+                                            valor_excel=e.valor_excel, detalle=cambios[e.campo],
+                                            motivo=MotivoDiferencia.JUEZ_REDACCION)
     diferencias = [por_campo[c] for c in CampoDiferente if c in por_campo]
     return r.model_copy(update={
         "diferencias": diferencias,

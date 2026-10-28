@@ -522,7 +522,7 @@ class TestPipelinePuntaAPunta:
         assert meta["tokens_e4"] + meta["tokens_embeddings"] == _tokens_raw(
             run_dir / "etapa4_llm_judge_raw")
         assert meta["tokens_e4_redaccion"] == 50 == _tokens_raw(run_dir / "etapa4_redaccion_raw")
-        assert meta["schema_version"] == reporte.schema_version == "0.11.0"
+        assert meta["schema_version"] == reporte.schema_version == "0.12.0"
         assert meta["checklist_un_tramo"] == "marcar"
         assert meta["empresa_auditora"] == "Ensaut"
         assert meta["total_panos"] == 3
