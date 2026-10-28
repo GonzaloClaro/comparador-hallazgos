@@ -11,8 +11,9 @@ Word) y su Tabla de Hallazgos (Excel), y propone dos cosas, siempre con su evide
 
 La herramienta no aprueba nada: **decide el equipo revisor**. Lo exacto lo hace código fijo
 (leer el Excel, comparar calificaciones, detectar «Cumple» frente a «No cumple»); la IA lee el
-informe y compara redacciones. El diseño completo está en [`DISENO.md`](DISENO.md) y las reglas de
-trabajo en el repo, en [`CLAUDE.md`](CLAUDE.md).
+informe y compara redacciones. El diseño completo está en [`DISENO.md`](DISENO.md), las reglas de
+trabajo en el repo en [`CLAUDE.md`](CLAUDE.md), y para qué sirve cada archivo Python y cómo se
+conectan, con diagramas, en [`ARQUITECTURA.md`](ARQUITECTURA.md).
 
 > Esta es la versión pública del código. Los informes reales, las planillas revisadas y las
 > mediciones no se publican; los nombres de subestaciones, empresas y personas que aparecen en el
