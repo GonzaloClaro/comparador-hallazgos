@@ -1,0 +1,51 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Claves: .env y sus variantes (.env.local…); la plantilla sí se versiona.
+.env*
+!.env.example
+.venv/
+venv/
+env/
+
+runs/
+# Feedback del equipo revisor (con copia de los reportes): privado.
+feedback/
+# Evaluaciones de evaluar_lote: nombres de informes reales y observaciones de la
+# planilla de revisión. Van en mediciones/bN/; esto las cubre si quedan en otro lado.
+evaluacion_*.json
+# Vectores de E4 (persistence.escribir_vectores): guardan los textos de los
+# hallazgos. Van en runs/ o mediciones/; esto los cubre si quedan en otro lado.
+*.npz
+
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+# Caché de uv dentro del proyecto (la crea run_streamlit.cmd en Windows)
+.uv-cache/
+
+*.xlsx
+*.csv
+# Métricas agregadas (sin texto privado) sí se versionan
+!docs/metricas/datos/*.csv
+*.log
+!tests/**/*.xlsx
+
+.DS_Store
+
+# Datos privados / reales — NUNCA subir al repo (aunque el repo es privado:
+# son informes de terceros y su procesamiento)
+informes_reales/
+checklist_general/
+# Mediciones de las rondas B0..Bn (runs, respuestas crudas, diagnósticos)
+mediciones/
+# samples: los DATOS quedan fuera; los generadores (.py) son código y se versionan
+samples/*
+!samples/*.py
+.claude/

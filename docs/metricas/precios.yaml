@@ -1,0 +1,143 @@
+# Precios por millón de tokens (USD) usados por `python -m comparador.metricas_lote`.
+#
+# Cada precio lleva su fuente oficial y la fecha de consulta. Un precio que no se
+# pudo confirmar en una página oficial va marcado `no_verificado: true`.
+#
+# Cómo se usa (ver el docstring de src/comparador/metricas_lote.py):
+# - costo de una llamada = tokens_input × input + tokens_cache × cache_lectura
+#   + tokens_output × output, con los precios del tramo que corresponde a ESA
+#   llamada. El thinking ya viene contado en los tokens de salida.
+# - `tramos` va de menor a mayor; `hasta_tokens_prompt` es inclusivo y `null`
+#   significa "sin tope". El largo del prompt de una llamada es input sin caché
+#   + lecturas de caché (+ escrituras, que el pipeline no usa ni registra).
+# - Se usan input, output y cache_lectura; batch_input y batch_output solo en
+#   las llamadas que fueron por la API de Batch (`via_llm: batch` en su raw: el
+#   checklist con CHECKLIST_BATCH, M61). Un precio de Batch `no_verificado` no se
+#   usa: cobrar con él falla. Las escrituras de caché quedan anotadas para
+#   estimar mejoras (el pipeline no usa caché: no envía cache_control).
+# - Supuestos de las rondas medidas: API de Anthropic de primera parte, ruteo
+#   global (sin `inference_geo`, que cobra 1.1x) y velocidad estándar (sin fast
+#   mode). Así quedó el código copiado en mediciones/b*/src.
+
+moneda: USD
+unidad: por millón de tokens
+
+modelos:
+  claude-sonnet-5-5:
+    proveedor: anthropic
+    recargo_contexto_largo: false
+    fuentes:
+      - url: https://platform.claude.com/docs/en/about-claude/pricing#model-pricing
+        fecha_consulta: "2026-10-17"
+        respalda: input, escrituras de caché, lectura de caché y output (tabla "Model pricing")
+      - url: https://platform.claude.com/docs/en/about-claude/pricing#batch-processing
+        fecha_consulta: "2026-10-17"
+        respalda: batch_input y batch_output
+      - url: https://platform.claude.com/docs/en/about-claude/pricing#long-context-pricing
+        fecha_consulta: "2026-10-17"
+        respalda: >-
+          sin recargo por contexto largo: los modelos 4.6 y posteriores, salvo
+          Haiku 5.5, cobran la ventana de 1M al precio estándar
+    notas: >-
+      La lectura de caché de Sonnet 5.5 y Opus 5.5 cuesta 0.05x del input (no el
+      0.1x de los demás modelos), según la tabla de multiplicadores de la sección
+      Prompt caching de la misma página.
+    tramos:
+      - hasta_tokens_prompt: null
+        input: 2.00
+        output: 10.00
+        cache_lectura: 0.10
+        cache_escritura_5m: 2.50
+        cache_escritura_1h: 4.00
+        batch_input: 1.00
+        batch_output: 5.00
+
+  claude-opus-5-5:
+    proveedor: anthropic
+    recargo_contexto_largo: false
+    fuentes:
+      - url: https://platform.claude.com/docs/en/about-claude/pricing#model-pricing
+        fecha_consulta: "2026-10-17"
+        respalda: input, escrituras de caché, lectura de caché y output (tabla "Model pricing")
+      - url: https://platform.claude.com/docs/en/about-claude/pricing#batch-processing
+        fecha_consulta: "2026-10-17"
+        respalda: batch_input y batch_output
+      - url: https://platform.claude.com/docs/en/about-claude/pricing#long-context-pricing
+        fecha_consulta: "2026-10-17"
+        respalda: sin recargo por contexto largo (mismo párrafo que Sonnet 5.5)
+    notas: Lectura de caché a 0.05x del input, igual que Sonnet 5.5.
+    tramos:
+      - hasta_tokens_prompt: null
+        input: 4.00
+        output: 20.00
+        cache_lectura: 0.20
+        cache_escritura_5m: 5.00
+        cache_escritura_1h: 8.00
+        batch_input: 2.00
+        batch_output: 10.00
+
+  claude-haiku-5-5:
+    proveedor: anthropic
+    recargo_contexto_largo: true
+    fuentes:
+      - url: https://platform.claude.com/docs/en/about-claude/pricing#model-pricing
+        fecha_consulta: "2026-10-17"
+        respalda: >-
+          las dos filas de Haiku 5.5 (prompts de hasta 100,000 tokens y de más de
+          100,000 tokens): input, escrituras de caché, lectura de caché y output
+      - url: https://platform.claude.com/docs/en/about-claude/pricing#batch-processing
+        fecha_consulta: "2026-10-17"
+        respalda: batch_input y batch_output de ambos tramos
+      - url: https://platform.claude.com/docs/en/about-claude/pricing#long-context-pricing
+        fecha_consulta: "2026-10-17"
+        respalda: >-
+          regla del tramo: cada request se cobra por su propio largo de prompt,
+          que suma todos sus tokens de entrada (incluidas lecturas y escrituras de
+          caché); si pasa de 100,000 tokens, TODA la request (input, caché y
+          output) paga los precios altos
+    tramos:
+      - hasta_tokens_prompt: 100000
+        input: 0.10
+        output: 0.50
+        cache_lectura: 0.01
+        cache_escritura_5m: 0.125
+        cache_escritura_1h: 0.20
+        batch_input: 0.05
+        batch_output: 0.25
+      - hasta_tokens_prompt: null
+        input: 0.50
+        output: 2.50
+        cache_lectura: 0.05
+        cache_escritura_5m: 0.625
+        cache_escritura_1h: 1.00
+        batch_input: 0.25
+        batch_output: 1.25
+
+  text-embedding-3-large:
+    proveedor: openai
+    recargo_contexto_largo: false
+    fuentes:
+      - url: https://developers.openai.com/api/docs/pricing
+        fecha_consulta: "2026-10-17"
+        respalda: >-
+          input 0.13 (sección "Specialized models", categoría Embedding; la URL
+          platform.openai.com/docs/pricing redirige acá). No lista precio Batch
+          para embeddings.
+      - url: https://developers.openai.com/api/docs/models/text-embedding-3-large
+        fecha_consulta: "2026-10-17"
+        respalda: input 0.13 (ficha del modelo); dice que el endpoint v1/batch está soportado, sin precio
+      - url: https://community.openai.com/t/inconsistent-pricing-for-text-embedding-3-large-between-model-card-and-pricing-page/1338277
+        fecha_consulta: "2026-10-17"
+        respalda: >-
+          batch_input 0.065 (respuesta de personal de OpenAI en el foro; no es
+          una página oficial de precios, por eso queda no_verificado)
+    notas: Los embeddings no tienen tokens de salida ni caché.
+    tramos:
+      - hasta_tokens_prompt: null
+        input: 0.13
+        output: null
+        cache_lectura: null
+        batch_input:
+          valor: 0.065
+          no_verificado: true
+          fuente: https://community.openai.com/t/inconsistent-pricing-for-text-embedding-3-large-between-model-card-and-pricing-page/1338277

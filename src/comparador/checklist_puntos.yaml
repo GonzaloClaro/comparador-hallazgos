@@ -1,0 +1,1204 @@
+# Los 38 puntos del checklist de aprobación de informes de auditoría.
+# Es configuración (como el catálogo de empresas): editar acá NO cambia el schema.
+#
+# Enunciados (2026-10-16): texto literal del ítem de la planilla oficial
+# "CheckList Revisión" del CEN (hoja "Check List", columna de chequeo), igual en
+# los 6 checklists de informes_reales/. El código de ítem de cada punto está en
+# mapeo_checklist_gt.yaml. Solo se normalizaron espacios; las erratas del
+# original ("SE calcula", "el el") se conservan para no alterar el texto.
+# Los puntos 3, 4 y 5 desglosan el ítem 1.4 (la viñeta con código, fecha y
+# versión): cada uno usa las palabras del 1.4 acotadas a su elemento.
+# La numeración 1-38 y los donde_buscar base vienen de "checklist_general/"
+# (2026-07-07). El txt «dónde buscar» termina en el 33: los base de 34 a 38 los
+# redactamos a partir de las ubicaciones del ejemplo de «salida esperada».
+#
+# Criterios confirmados por el equipo revisor el 2026-07-16, respondiendo
+# tasks/equipo/respuestas_v1.md:
+# - Regla general OFICIAL: el checklist evalúa AL INFORME, no a la instalación.
+#   Deficiencia levantada explícitamente como hallazgo = el punto CUMPLE.
+#   (En julio fue un ✓ sobre un texto nuestro; el equipo revisor la dio con sus
+#   palabras el 2026-10-17, ver abajo.)
+# - Hints de los puntos 6, 9, 16, 25, 26 y 37 ajustados con sus palabras. Los de
+#   17 y 18 no: se apoyan en un ✓ sobre una opción que redactamos nosotros (el 18,
+#   además, en una respuesta a una descripción equivocada del punto), que no es un
+#   criterio firme (tasks/lessons.md, 2026-10-17).
+# - 2026-10-17 (tasks/equipo/respuestas_v3_celdas.md, transmitido por el usuario):
+#   el equipo revisor RETIRA la excepción de resultado del punto 23 que había confirmado el
+#   2026-07-16; la regla general no tiene excepciones (despeje > 400 ms levantado
+#   como hallazgo = cumple).
+#
+# Ajustes nuestros del 2026-10-17, sin confirmar por el equipo revisor: hint 6
+# precisado (el DUF debe venir dentro del PDF: un unilineal simplificado, los
+# diagramas del modelo de coordinación o la remisión a una carpeta aparte no
+# bastan), por la decisión del usuario sobre Gamma 6 (pendiente en la P1 de la
+# v3); hint 20: ya no dice que el 23 exige el resultado (coherencia con el retiro).
+#
+# Los enunciados oficiales a veces piden más que el criterio: el prompt indica que
+# el "criterio" de cada punto (donde_buscar) manda cuando precisa o relaja el
+# enunciado. Qué puntos relajan el enunciado, y si alguien lo decidió, está en el
+# bloque `origen` de cada punto (relaja_enunciado e historia).
+#
+# Hints de los puntos 14, 17, 18, 20, 22, 26, 27, 29, 35 y 36 ajustados el 2026-10-16 con
+# el criterio inferido de los 6 checklists revisados por humanos (verificado
+# contra los informes), sin contradecir las reglas del equipo revisor.
+#
+# Bloque `origen` de cada punto (M66): queda fuera del prompt (user_checklist no lo
+# lee) y cargar_puntos lo valida (etapa0_checklist.OrigenCriterio).
+# - relaja_enunciado: el criterio pide menos que el enunciado oficial.
+# - preguntas: preguntas abiertas al equipo revisor que afectan el criterio
+#   (tasks/equipo/preguntas_v3.md; P4b: relajaciones que nadie decidió).
+# - historia, en orden cronológico. fecha: cuándo se fijó el criterio (no la del
+#   commit); commit: cuándo entró a git ("" si nunca entró). tipo:
+#   literal_equipo (palabras del equipo revisor), aprobado_sobre_texto_nuestro (✓
+#   del equipo revisor sobre un texto nuestro), inferido_planillas (deducido de las
+#   planillas revisadas por humanos), propuesto (redacción o convención nuestra) o
+#   base_checklist_general.
+# - confirmado: true solo con literal_equipo y una respuesta escrita en
+#   tasks/equipo/respuestas_*.md; un ✓ sobre un texto nuestro nunca lo es (lección del
+#   2026-10-17). Lo de respuestas_v3_celdas.md lo transmitió el usuario el 2026-10-17.
+# - Sin citas de fuentes privadas (planillas, checklist_general/, mediciones/).
+
+puntos:
+  - numero: 1
+    enunciado: "El Informe de Auditoría identifica apropiadamente al Coordinado auditado."
+    donde_buscar: "Identifica al propietario de la instalación: la empresa coordinada, por su nombre o su sigla, en la portada o la introducción."
+    origen:
+      relaja_enunciado: false
+      preguntas: []
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 1"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio. Entró al YAML en el commit inicial (2026-07-08) y no ha cambiado
+            desde entonces. El equipo revisor no se ha pronunciado sobre este criterio.
+        - fecha: "2026-10-27"
+          tipo: propuesto
+          confirmado: false
+          referencia: "tasks/todo.md, paso 7 (repo público)"
+          commit: ""
+          nota: >-
+            Decisión del usuario: el ejemplo describe el dato sin nombres reales de coordinados. Los nombres
+            solo ilustraban el tipo de dato y no aportan al modelo. Sin medir (cambio chico de un punto
+            que casi nunca falla); queda para la próxima ronda.
+  - numero: 2
+    enunciado: "El Informe de Auditoría identifica apropiadamente la subestación auditada. En particular, cada vez que se menciona en el informe principal."
+    donde_buscar: "Identifica la subestación por su nombre, habitualmente escrito como «SE» o «S/E» seguido del nombre."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4b]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 2"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, transcrito en el commit inicial (con tildes) y sin cambios desde
+            entonces. No pide identificar la subestación cada vez que se menciona, como el
+            enunciado oficial. El equipo revisor no se ha pronunciado sobre este criterio.
+        - fecha: "2026-10-27"
+          tipo: propuesto
+          confirmado: false
+          referencia: "tasks/todo.md, paso 7 (repo público)"
+          commit: ""
+          nota: >-
+            Decisión del usuario: el ejemplo describe el dato sin nombres reales de subestaciones. Los nombres
+            solo ilustraban el tipo de dato y no aportan al modelo. Sin medir (cambio chico de un punto
+            que casi nunca falla); queda para la próxima ronda.
+  - numero: 3
+    enunciado: "El Informe de Auditoría se identifica apropiadamente, mediante una viñeta que especifica un código del informe."
+    donde_buscar: "Tiene algún código distintivo en la portada."
+    origen:
+      relaja_enunciado: false
+      preguntas: [P24]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 3"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin cambios desde el commit inicial. El equipo revisor no se ha
+            pronunciado sobre este criterio, aunque la planilla de Beta marca SI con una portada
+            sin código (P24).
+  - numero: 4
+    enunciado: "El Informe de Auditoría se identifica apropiadamente, mediante una viñeta que especifica la fecha de emisión."
+    donde_buscar: "Tiene fecha en la portada."
+    origen:
+      relaja_enunciado: false
+      preguntas: []
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 4"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin cambios desde el commit inicial. El equipo revisor no se ha
+            pronunciado sobre este criterio.
+  - numero: 5
+    enunciado: "El Informe de Auditoría se identifica apropiadamente, mediante una viñeta que especifica la versión de informe (o revisión). La viñeta identifica todas las versiones previas. Las fechas y las versiones indicadas en la viñeta son coherentes, permitiendo su trazabilidad."
+    donde_buscar: "Tiene algún código de versión distintivo en la portada."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4b]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 5"
+          commit: "999225b"
+          nota: >-
+            El texto base del 5 es igual al del punto 3 (parece una errata del original, sin
+            confirmar). El YAML no lo copió tal cual: en el mismo commit le agregó «de versión»
+            (entrada siguiente).
+        - fecha: "2026-07-08"
+          tipo: propuesto
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml (versión 999225b), punto 5"
+          commit: "999225b"
+          nota: >-
+            Aclaración nuestra («código de versión») para distinguir el 5 del 3, sin respaldo del
+            equipo revisor ni de las planillas; no ha cambiado. No pide las versiones previas ni
+            la coherencia de fechas y versiones que exige el enunciado oficial.
+  - numero: 6
+    enunciado: "El Diagrama Unilineal Funcional (DUF) que se adjunta al Informe de Auditoría representa fielmente las instalaciones y equipos auditados. Es decir, representa correctamente la topología de la subestación y el sistema de protecciones auditado, destacando claramente las características técnicas de los transformadores, interruptores, desconectadores, TT/PP, TT/CC y cualquier otro equipo relevante para la auditoría."
+    donde_buscar: "El DUF debe venir DENTRO del PDF del informe (en el cuerpo o en un anexo incluido en el PDF, p. ej. 'ANEXO II – DIAGRAMA UNILINEAL'). Cumple si el DUF está en el informe, aunque no represente fielmente las instalaciones, SIEMPRE QUE las deficiencias de representación estén levantadas como hallazgo en las tablas de hallazgos. NO cumple si el DUF no viene en el informe: un unilineal simplificado o los diagramas del modelo del estudio de coordinación no lo reemplazan, y remitirlo a una carpeta o archivo aparte (p. ej. 'en la carpeta de documentación técnica se encuentra el diagrama unifilar funcional') no es adjuntarlo, aunque su desactualización esté levantada como hallazgo — responder no_cumple, no no_verificable, porque el punto evalúa que el informe muestre el DUF. También NO cumple si el DUF no representa fielmente y esa deficiencia NO está levantada como hallazgo."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P1]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 6"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio: bastaba con que hubiera una imagen del diagrama unilineal. Se
+            reemplazó en bb80195.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit bb80195 (loop de julio contra el GT humano de Epsilon y Añañuca)"
+          commit: "bb80195"
+          nota: >-
+            El loop de julio, calibrado contra el GT humano, pasó a exigir un DUF adjunto
+            (generalmente en anexos) y fiel, y a rechazar un unilineal simplificado. La celda de
+            Epsilon 6 en que se apoyó resultó errónea y se corrigió el 2026-07-17. Lo del
+            simplificado se quitó en 2db356c y volvió en da2f9df.
+        - fecha: "2026-07-16"
+          tipo: literal_equipo
+          confirmado: true
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 4 (fila del punto 6)"
+          commit: "2db356c"
+          nota: >-
+            Criterio con palabras del equipo revisor, escrito sobre nuestra plantilla «apruebo si…
+            aunque…»: cumple aunque el DUF no sea fiel si las diferencias están levantadas como
+            hallazgo (regla 19d). Se incorporó en el Bloque 20 (2026-07-16) y se commiteó el
+            2026-10-16; la palabra «adjunto» siguió siendo la de bb80195.
+        - fecha: "2026-10-17"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "tasks/equipo/respuestas_v3_celdas.md, fila Gamma 6"
+          commit: "da2f9df"
+          nota: >-
+            Se aceptó como correcta la celda NO de Gamma 6 (DUF remitido a una carpeta
+            aparte), y de ahí salió que remitirlo a una carpeta aparte no es adjuntarlo. Las
+            palabras de esa fila son del usuario, sin constancia de que el equipo revisor avalara
+            este caso; tres planillas en la misma situación marcan SI.
+        - fecha: "2026-10-17"
+          tipo: propuesto
+          confirmado: false
+          referencia: "tasks/equipo/preguntas_v3.md, P1; tasks/lessons.md, lección «Adjunto en un hint es ambiguo…» (2026-10-17)"
+          commit: "da2f9df"
+          nota: >-
+            Redacción nuestra: lee «muestre» como DENTRO del PDF, dice que los diagramas del
+            modelo de coordinación no reemplazan el DUF y agrega que remitirlo aparte es no_cumple
+            aunque su desactualización esté levantada como hallazgo. La justificación de esa
+            excepción a la 19d es nuestra; el equipo revisor no lo ha confirmado (P1).
+  - numero: 7
+    enunciado: "En el Informe de Auditoría se indica claramente cuales son los relés y las funciones auditadas, así como el paño en que se encuentran instalados, la instalación protegida y sobre que interruptor(es) actúa(n)"
+    donde_buscar: "Tabla con relés y funciones auditadas, junto con el paño y sobre qué interruptor actúan."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4b]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 7"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin cambios desde el commit inicial. No pide «la instalación
+            protegida», que agrega el enunciado oficial. El equipo revisor no se ha pronunciado
+            sobre este criterio.
+  - numero: 8
+    enunciado: "El informe de Auditoría incluye el resumen de los ajustes de los equipos y funciones auditadas. El resumen indicado corresponde a los ajustes levantados en terreno. El resumen indicado incluye todos los relés y las funciones auditadas. Para cada relé se especifican las funciones, sus ajustes, las razones de los TT/CC y TT/PP, y todo parámetro relevante requerido para analizar la operación del sistema de protecciones y control auditado."
+    donde_buscar: "Tabla con los ajustes de los equipos y las funciones auditadas."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4b]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 8"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin cambios desde el commit inicial: solo pide una tabla de
+            ajustes, no que sean los levantados en terreno, que incluya todos los relés y
+            funciones ni las razones de TT/CC y TT/PP. El equipo revisor no se ha pronunciado
+            sobre este criterio.
+  - numero: 9
+    enunciado: "El Informe de Auditoría incluye todos los grupos de ajustes cargados en los relés y se explica su criterio de su habilitación. Por ejemplo, correspondería explicar que el grupo 2 de ajustes se activa automáticamente con el cierre del interruptor seccionador de barra, permitiendo la operación en paralelo de los transformadores, si es el caso."
+    donde_buscar: "Basta con que el informe LISTE los grupos de ajustes cargados (Grupo 1 o grupo normal, Grupo 2, etc.), típicamente en las tablas de ajustes. NO se exige que explique el criterio de habilitación de cada grupo — con los grupos listados, el punto cumple. Solo NO cumple si los relés tienen grupos cargados y el informe no los lista."
+    origen:
+      relaja_enunciado: true
+      preguntas: []
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 9"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio: hablar de los grupos de ajustes, típicamente en tablas. Se
+            reemplazó en bb80195.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit bb80195 (loop de julio contra el GT humano)"
+          commit: "bb80195"
+          nota: >-
+            Se calibró hacia la planilla estricta (Epsilon NO frente a Añañuca SI): pasó a exigir
+            que se explique el criterio de habilitación de cada grupo. 2db356c lo reemplazó.
+        - fecha: "2026-07-16"
+          tipo: literal_equipo
+          confirmado: true
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 2"
+          commit: "2db356c"
+          nota: >-
+            El equipo revisor respondió con sus palabras a una pregunta abierta: basta con que el
+            informe liste los grupos (coincide con una opción que sugerimos como ejemplo). «NO se
+            exige que explique…» y «Solo NO cumple si…» son redacción nuestra que sigue esa
+            respuesta. Se incorporó en el Bloque 20 (2026-07-16) y se commiteó el 2026-10-16.
+  - numero: 10
+    enunciado: "En el informe se describen los esquemas adaptativos existentes, tales como bloqueos de operación mediante una señal externa de estado, y se explica su efecto sobre la coordinación de operación de las protecciones auditadas."
+    donde_buscar: "Identifica si hay esquemas adaptativos."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P2]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 10"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin cambios desde el commit inicial (el mensaje de bb80195 dice
+            que se recalibró, pero ningún commit lo tocó). El equipo revisor no ha definido el
+            criterio: P2 de la v3 sigue abierta y la pregunta 3 de la v2 no tiene respuesta
+            registrada.
+  - numero: 11
+    enunciado: "En el Informe de Auditoría se indican claramente las diferencias entre el ECAP disponible en la plataforma Infotécnica, el ECAP entregado por el Coordinado para la realización de la auditoría y los ajustes levantados en terreno del sistema de protecciones auditado."
+    donde_buscar: "En las tablas de hallazgos están las diferencias entre el ECAP e Infotécnica. También puede haber tablas donde dice la función y si es consistente con el ECAP."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4b]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 11"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, copiado en el commit inicial y sin cambios. Solo nombra las
+            diferencias ECAP–Infotécnica; el enunciado pide además el ECAP del Coordinado y los
+            ajustes levantados en terreno. Ninguna ronda de preguntas al equipo revisor (v1, v2,
+            v3) lo menciona.
+  - numero: 12
+    enunciado: "La verificación requerida se realiza mediante la simulación computacional de la operación de las protecciones utilizando el programa especializado DigSilent Power Factory, en alguna versión reciente que permita la lectura de su base de datos."
+    donde_buscar: "Simulan en el software DigSilent Power Factory."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4b]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 12"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin cambios desde el commit inicial. No pide la versión reciente
+            de DigSilent que agregó el enunciado oficial (0ce842b). Ninguna ronda de preguntas al
+            equipo revisor lo menciona.
+  - numero: 13
+    enunciado: "En caso de existir generación PMGD en las instalaciones de Distribución, se considera los correspondientes aportes de corriente de cortocircuito en las cabeceras de los alimentadores."
+    donde_buscar: "Dice explícitamente si es que hay PMGD conectadas en la subestación."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P6, P4b]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 13"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin cambios desde el commit inicial. Solo pide declarar si hay
+            PMGD, no verificar sus aportes de cortocircuito como pide el enunciado. Ninguna ronda
+            lo discutió como criterio; P6 de la v3 nombra el 13 sin PMGD.
+  - numero: 14
+    enunciado: "SE calcula la magnitud de las corrientes de cortocircuitos francos trifásicos, bifásicos aislados, monofásicos y bifásicos a tierra. En el caso del cortocircuito bifásico a tierra se calcula la corriente de fase y de tierra. Adicionalmente, los cortocircuitos monofásicos se calculan con una resistencia de falla igual a 25 y 50 Ohm."
+    donde_buscar: "Hay evidencia que hable de simulaciones de fallas 3F, 2F, 1F-25, 1F-50, 2FT. Este punto evalúa QUÉ tipos de cortocircuito se calculan, no cómo se presentan: cumple aunque el informe no tabule las magnitudes de corriente (la presentación en tablas de corrientes se evalúa en el punto 17)."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 14"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio; la primera oración del criterio actual sigue siendo este texto.
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); tasks/equipo/preguntas_v3.md, P4 (no enviada)"
+          commit: "0ce842b"
+          nota: >-
+            Se agregó que el 14 evalúa qué fallas se simulan y cumple aunque no se tabulen las
+            corrientes (eso va en el 17): las 6 planillas marcan SI en el 14 incluso donde el 17
+            es NO. Sin confirmar (P4). Cambió entre B0 y B1; el commit es del 2026-10-17.
+  - numero: 15
+    enunciado: "Se simulan los cortocircuitos en la cabecera de todos y cada uno de los paños de media tensión de la subestación auditada y en la(s) barra(s) de media tensión."
+    donde_buscar: "En la simulación se realiza cortocircuito en todas las cabeceras de los paños de media tensión."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4b]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 15"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin cambios desde el commit inicial. No menciona las barras de
+            media tensión que agregó el enunciado oficial (0ce842b). Ninguna ronda de preguntas al
+            equipo revisor lo menciona.
+  - numero: 16
+    enunciado: "Se considera todas las condiciones topológicas posibles de la subestación, es decir, alimentación desde todas las fuentes posibles, todas las configuraciones de barras posibles, todas las transferencias de carga posibles."
+    donde_buscar: "Los informes suelen presentar las condiciones topológicas como escenarios o casos de simulación en un capítulo propio. Basta que el informe muestre AL MENOS UNA configuración topológica documentada como escenario de simulación para que el punto cumpla — no se exige cubrir todas las fuentes, configuraciones de barra ni transferencias posibles. Solo NO cumple si el estudio no documenta ningún escenario topológico."
+    origen:
+      relaja_enunciado: true
+      preguntas: []
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 16"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio; se reemplazó por completo en bb80195.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit bb80195 (mensaje); tasks/todo.md, sección «Comparación Sonnet 5 vs Opus 4.8 — Añañuca con rúbrica anclada (2026-07-09)»"
+          commit: "bb80195"
+          nota: >-
+            Cambio del loop de julio, medido contra las planillas de Epsilon y Añañuca (SI en el
+            16); el commit lo agrupa con 17 y 18 bajo «escenarios que el estudio define». De él
+            queda la primera oración actual.
+        - fecha: "2026-07-16"
+          tipo: literal_equipo
+          confirmado: true
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 4 (fila del punto 16)"
+          commit: "2db356c"
+          nota: >-
+            El equipo revisor escribió su regla con sus palabras (sobre nuestra plantilla «apruebo
+            si… aunque…») y el criterio la traduce como «Basta que el informe muestre AL MENOS UNA
+            configuración topológica». Los agregados «documentada como escenario de simulación» y
+            «Solo NO cumple si…» son nuestros. Se incorporó el 2026-07-16 y se commiteó el
+            2026-10-16.
+  - numero: 17
+    enunciado: "Para cada una de las posibles fuentes de alimentación de la subestación auditada y para cada una de las configuraciones posibles de barra y para todos los tipos de cortocircuito, las corrientes calculadas se muestran utilizando tablas de \"Corrientes de Cortocircuito - Fallas en Paños MT\" (cada combinación posible corresponde a un “escenario”)"
+    donde_buscar: "Para cada uno de los casos de simulación se muestran los resultados de las corrientes de cortocircuito, típicamente en tablas de 'Nivel de cortocircuito' con magnitudes en A o kA por tipo de falla y punto de falla. CUMPLE si existen tablas de corrientes para los escenarios que el propio estudio define (aunque sea un único escenario topológico, p. ej. solo topología normal) — la suficiencia de los escenarios elegidos NO se evalúa en este punto (es materia del punto 16). OJO: las tablas de tiempos de operación o de paso de coordinación (TOP/TDP) por tipo de falla NO son tablas de corrientes, y el valor 'Icc' rotulado dentro de las curvas tiempo-corriente es evidencia del punto 21, no de este. NO cumple si el informe no muestra en tablas las magnitudes de las corrientes de cortocircuito, o si falta la tabla de corrientes de algún escenario que el estudio sí definió."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 17"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio; la primera oración actual lo conserva.
+        - fecha: "2026-07-09"
+          tipo: propuesto
+          confirmado: false
+          referencia: "commit 3a2cc8f; tasks/todo.md, sección «Comparación Sonnet 5 vs Opus 4.8 — Añañuca con rúbrica anclada (2026-07-09)»"
+          commit: "3a2cc8f"
+          nota: >-
+            Se exigió una tabla para CADA combinación de fuente, configuración de barra y tipo de
+            falla; la planilla de Añañuca ya marcaba NO y el commit no vincula este cambio a ella.
+            Se reemplazó en bb80195.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit bb80195; tasks/todo.md, sección «Cierre del loop de mejora (2026-07-09, 3 rondas medidas)»"
+          commit: "bb80195"
+          nota: >-
+            Con planillas contradictorias (Epsilon SI, Añañuca NO), pasó a los escenarios que
+            define el estudio, con NO si faltan combinaciones relevantes; ese lado estricto lo
+            elegimos nosotros. De aquí queda «escenarios que el propio estudio define».
+        - fecha: "2026-07-16"
+          tipo: aprobado_sobre_texto_nuestro
+          confirmado: false
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 1 (opción b)"
+          commit: "2db356c"
+          nota: >-
+            El equipo revisor marcó ✓ en la opción flexible que redactamos nosotros, y el criterio
+            la copia; la pregunta además afirmaba un dato falso de Añañuca. Un ✓ sobre texto
+            nuestro no es criterio firme (lección del 2026-10-17). Se incorporó el 2026-07-16 y se
+            commiteó el 2026-10-16.
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "tasks/lessons.md, lección «Nunca afirmar un hecho de un PDF…» (2026-10-16); src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); tasks/equipo/preguntas_v3.md, P4 y Parte 7"
+          commit: "0ce842b"
+          nota: >-
+            Se precisó qué cuenta como tabla de corrientes (en A o kA; no las TOP/TDP ni el Icc de
+            las curvas) y que sin ellas el punto es NO: el NO de Añañuca era correcto, y Alfa
+            y Zeta anotan que faltan las corrientes. Sin confirmar (P4). Cambió entre B0 y B1;
+            el commit es del 2026-10-17.
+  - numero: 18
+    enunciado: "Para cada escenario simulado se calcula el paso de coordinación entre las protecciones de cada paño MT y las protecciones del paño general de la(s) barra(s) MT de la subestación, utilizando las corrientes indicadas en la(s) tabla(s) \"Corrientes de Cortocircuito - Fallas en Paños MT\""
+    donde_buscar: "Para cada uno de los casos de simulación se muestran los pasos de coordinación. Esto está en tablas generalmente y se llama TDP. CUMPLE si existen los pasos de coordinación para los escenarios que el propio estudio define (aunque no cubra todas las combinaciones posibles de fuente y configuración de barra) — mismo criterio flexible que el punto 17. Solo NO cumple si falta el TDP de algún escenario que el estudio sí definió. La ausencia de tablas de corrientes de cortocircuito NO hace fallar este punto (se evalúa solo en el punto 17): este punto cumple con los TDP de los escenarios definidos aunque el informe no tabule las corrientes."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P5]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 18"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio; las dos primeras oraciones actuales son este texto.
+        - fecha: "2026-07-09"
+          tipo: propuesto
+          confirmado: false
+          referencia: "commit 3a2cc8f; tasks/todo.md, sección «Comparación Sonnet 5 vs Opus 4.8 — Añañuca con rúbrica anclada (2026-07-09)»"
+          commit: "3a2cc8f"
+          nota: >-
+            Se exigió el TDP para CADA combinación, por analogía con el 17; no viene de un NO de
+            planilla (Añañuca marca SI en el 18). Se reemplazó en bb80195.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit bb80195"
+          commit: "bb80195"
+          nota: >-
+            En el loop contra Epsilon y Añañuca (SI en el 18) pasó a los escenarios que define el
+            estudio; de aquí queda «escenarios que el propio estudio define».
+        - fecha: "2026-07-16"
+          tipo: aprobado_sobre_texto_nuestro
+          confirmado: false
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 1 (opción b)"
+          commit: "2db356c"
+          nota: >-
+            El criterio pasó a aprobar el TDP de los escenarios que define el estudio con el
+            «mismo criterio flexible que el punto 17», que es el ✓ del equipo revisor sobre
+            nuestra opción (b) de la pregunta del 17: no es criterio firme. Se incorporó el
+            2026-07-16 y se commiteó el 2026-10-16.
+        - fecha: "2026-07-16"
+          tipo: aprobado_sobre_texto_nuestro
+          confirmado: false
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 4 (fila del punto 18)"
+          commit: "2db356c"
+          nota: >-
+            La frase de la fila 18 es del equipo revisor, pero respondió a nuestra descripción
+            equivocada del punto («gemelo del 17») y habla de corrientes, no de pasos de
+            coordinación. Lo aprobado fue nuestro planteamiento: no confirma el criterio actual.
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); tasks/equipo/preguntas_v3.md, P5 (no enviada)"
+          commit: "0ce842b"
+          nota: >-
+            Se agregó que la falta de tablas de corrientes no hace fallar el 18 (se evalúa solo en
+            el 17), por las planillas que marcan 17 NO y 18 SI. Sin confirmar (P5). Cambió entre
+            B0 y B1; el commit es del 2026-10-17.
+  - numero: 19
+    enunciado: "En el Informe de Auditoría se indica en forma explícita todos los casos en que el paso de coordinación no cumple con la exigencia normativa, es decir, paso de coordinación menor o igual a 300 ms"
+    donde_buscar: "El informe indica explícitamente cuando el paso de coordinación o TDP es menor que 300 ms."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P22]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 19"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin cambios desde el commit inicial. Ya en el archivo base el
+            enunciado decía «menor o igual a 300 ms» y el criterio «menor que»: P22 pregunta justo
+            eso. Nunca se revisó con el equipo revisor.
+  - numero: 20
+    enunciado: "(Solo si aplica el artículo 3-24 letra b numeral III de la NTSyCS/2019 y no se dispone de una protección diferencial de barra) En el Informe de Auditoría se indica en forma explícita todos los casos en que el el tiempo de despeje de la falla es inferior a 400 [ms]"
+    donde_buscar: "La condición entre paréntesis del enunciado (Art. 3-24 b) III / no disponer de diferencial de barra) NO excluye este punto: se evalúa siempre que el informe analice el despeje de fallas en barra MT, aunque declare que la exigencia del Art. 3-24 b) III no le aplica o que la barra cuenta con protección diferencial (así lo evalúan los revisores del CEN); no responder no_verificable por esa causa. El tiempo de despeje (tiempo de operación, TOP) está en las mismas tablas que el paso de coordinación (TDP), en las conclusiones por equipo o paño del capítulo de coordinación y en la tabla de hallazgos. CUMPLE si el informe indica explícitamente, para las fallas en barra MT analizadas, qué casos se despejan en menos de 400 ms y cuáles no. Frases como 'despeje en un tiempo menor a 400 ms' o 'incumplimiento del Art. 3-24, el despeje es superior a 400 ms', ya sea en tablas, conclusiones o levantadas como hallazgo, son indicación explícita. Este punto evalúa que el informe lo explicite, NO el resultado: un despeje mayor a 400 ms que el informe declara no hace fallar este punto (el despeje en la barra se evalúa en el punto 23, con la regla general). Solo NO cumple si el informe no identifica en ninguna parte los casos frente al límite de 400 ms."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4, P3]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 20"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio; de él queda, reescrita, la frase de que el TOP está en las mismas
+            tablas que el TDP.
+        - fecha: "2026-07-16"
+          tipo: aprobado_sobre_texto_nuestro
+          confirmado: false
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 3"
+          commit: "0ce842b"
+          nota: >-
+            El criterio acepta lo levantado como hallazgo y dice que un despeje sobre 400 ms
+            declarado no hace fallar el punto: aplica la regla general que el equipo revisor marcó
+            ✓ sobre un texto nuestro, y su NO a extender la excepción de resultado a otros puntos.
+            Entró al hint 20 en 0ce842b; el ✓ no es confirmación firme.
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); tasks/equipo/preguntas_v3.md, P4 (no enviada)"
+          commit: "0ce842b"
+          nota: >-
+            Se reescribió entero: la condición entre paréntesis no excluye el punto («así lo
+            evalúan los revisores del CEN», generalizado desde Alfa, que marca SI aunque
+            declara que no aplica) y se evalúa que el informe lo explicite, no el resultado. Sin
+            confirmar. Cambió entre B0 y B1; el commit es del 2026-10-17.
+        - fecha: "2026-10-17"
+          tipo: propuesto
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, cabecera (ajustes nuestros del 2026-10-17); tasks/equipo/respuestas_v3_celdas.md:9-21; tasks/todo.md, sección «Bloque 22», ítem F5b"
+          commit: "da2f9df"
+          nota: >-
+            Tras el principio del equipo revisor que transmitió el usuario el 2026-10-17 (retira
+            la excepción del 23), cambiamos «el resultado se exige solo en el punto 23» por «el
+            despeje en la barra se evalúa en el punto 23, con la regla general». Ajuste de
+            coherencia nuestro (F5b) que no cambia lo que exige el 20; commit del 2026-10-23.
+  - numero: 21
+    enunciado: "Se adjuntan todas las correspondientes hojas de coordinación con las curvas de operación de las protecciones, en las cuales se identifican claramente las protecciones representadas, la corriente de cortocircuito considerada y el tiempo de operación. Se recomienda que las curvas se agrupen por escenario, por corrientes de fases - residual y por respaldo común (alimentadores – general de barra, general de barra – respaldo AT)."
+    donde_buscar: "Hay imágenes de las curvas de operación de las protecciones."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4b]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 21"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio; ningún commit posterior lo cambió. Solo pide imágenes de las
+            curvas, no todas las hojas de coordinación con protecciones, corriente y tiempo
+            identificados. El equipo revisor no se ha pronunciado (el 21 no aparece en
+            respuestas_v1.md ni en respuestas_v3_celdas.md).
+  - numero: 22
+    enunciado: "(Solo si aplica el artículo 3-24 letra b) numeral III de la NTSyCS/2019 y la barra MT es seccionada) Se comprueba que la barra MT es seccionada y que cada barra cuenta con un simple esquema de protecciones diferenciales por cada sección de barra. Si es el caso, se indica la marca y el modelo del equipo auditado. En caso de no contar la(s) barra(s) MT con la protección mencionada, se indica en forma explícita su indisponibilidad."
+    donde_buscar: "La aplicabilidad se decide solo por la topología: barra MT simple (no seccionada) → el punto no aplica (no_verificable, indicándolo). Si la barra es seccionada, el punto se evalúa aunque el informe declare que el Art. 3-24 b) III no le aplica. CUMPLE si cada sección de barra cuenta con protección diferencial de barra 87B (indicando marca y modelo), o si el informe indica EXPLÍCITAMENTE que la barra no cuenta con 87B (su indisponibilidad, como pide el enunciado; p. ej. levantada como hallazgo — regla general de la revisora). La indicación debe decir que la barra NO cuenta con protección diferencial de barra: NO lo son un hallazgo que solo reporta tiempos de despeje mayores a 400 ms, los hallazgos del Art. 3-24 b) III sobre tiempos, ni la definición de la categoría de hallazgo '87B/Tpo Máx Despeje' en la metodología. La 87T del transformador no es 87B (criterio pendiente de confirmación de la revisora). NO cumple si la barra es seccionada, no tiene 87B y el informe no declara explícitamente su indisponibilidad."
+    origen:
+      relaja_enunciado: false
+      preguntas: [P3, P6]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem numerado 23 en ese txt"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio. En el txt «dónde buscar» este ítem lleva el número 23; el YAML
+            sigue el orden del txt «salida esperada».
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); mediciones/diagnosticos/revpre_resumen.txt:99-110 (privado); mediciones/b1/src/comparador/checklist_puntos.yaml (privado); tasks/equipo/preguntas_v3.md, P3 y P6"
+          commit: "0ce842b"
+          nota: >-
+            La aplicabilidad por topología se dedujo de las planillas: barra simple, no aplica
+            (Epsilon y Zeta en N/A); barra seccionada, se evalúa aunque el informe diga que el
+            Art. 3-24 b) III no le aplica (Alfa SI). Lo propuso la revisión previa a B1, rigió
+            desde B1 y entró a git con 0ce842b.
+        - fecha: "2026-10-16"
+          tipo: propuesto
+          confirmado: false
+          referencia: "tasks/lessons.md, lección «Una sugerencia de un revisor no puede crear una excepción…» (2026-10-17); mediciones/diagnosticos/revpre_resumen.txt:111 (privado); mediciones/b1/src/comparador/checklist_puntos.yaml (privado); mediciones/b2/src/comparador/checklist_puntos.yaml (privado)"
+          commit: ""
+          nota: >-
+            La misma revisión previa a B1 propuso, para calzar con Beta (NO) mientras el equipo
+            revisor no respondiera, que declarar o levantar la indisponibilidad de la 87B no
+            bastara para cumplir. Rigió en B1 y B2 y se retiró el 2026-10-17, antes de 0ce842b,
+            por ser una segunda excepción a la regla general; nunca entró a git.
+        - fecha: "2026-10-17"
+          tipo: aprobado_sobre_texto_nuestro
+          confirmado: false
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 3; tasks/lessons.md, lección «Una sugerencia de un revisor no puede crear una excepción…» (2026-10-17)"
+          commit: "0ce842b"
+          nota: >-
+            Tras B2 (Sonnet aplicó la regla general en Beta 22), el criterio pasa a cumplir
+            también si el informe dice explícitamente que la barra no tiene 87B, como pide el
+            final del enunciado. La regla general se apoyaba entonces solo en el ✓ del equipo
+            revisor (2026-07-16) sobre un texto nuestro, que no es criterio firme.
+        - fecha: "2026-10-17"
+          tipo: propuesto
+          confirmado: false
+          referencia: "tasks/lessons.md, lección «Una sugerencia de un revisor no puede crear una excepción…» (2026-10-17); mediciones/diagnosticos/wf_analisis.json (privado)"
+          commit: "0ce842b"
+          nota: >-
+            Precisión nuestra sobre qué cuenta como declaración explícita: no cuentan un hallazgo
+            que solo reporta despejes > 400 ms, los hallazgos del Art. 3-24 b) III sobre tiempos
+            ni la categoría «87B/Tpo Máx Despeje». Alfa y Gamma, sin 87B y con hallazgos
+            de despeje, marcan SI; la opción B de P3 pregunta si basta ese hallazgo.
+        - fecha: "2026-10-17"
+          tipo: propuesto
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, punto 22 (donde_buscar); tasks/equipo/preguntas_v3.md, P3"
+          commit: "0ce842b"
+          nota: >-
+            «La 87T del transformador no es 87B» es criterio nuestro y el propio texto lo marca
+            pendiente: calza con Beta (NO) y contradice a Alfa y Gamma (SI citando la
+            87T). Es la opción C de P3, la que se aplica mientras no respondan.
+        - fecha: "2026-10-17"
+          tipo: literal_equipo
+          confirmado: true
+          referencia: "tasks/equipo/respuestas_v3_celdas.md:9-21"
+          commit: ""
+          nota: >-
+            Regla general sin excepciones y con su razón, dada por el equipo revisor horas después
+            de 0ce842b (transmitido por el usuario el 2026-10-17). Respalda la cláusula «levantada
+            como hallazgo» del 22, pero no cambió su texto ni responde si bastan la 87T o el
+            hallazgo de despeje > 400 ms (P3).
+  - numero: 23
+    enunciado: "(Solo si aplica el artículo 3-24 letra b numeral III de la NTSyCS/2019 y no se dispone de una protección diferencial de barra) Se comprueba que la barra MT no es seccionada y se verifica que el tiempo con que es despejada una falla en la(s) barra(s) de MT mediante la operación de las protecciones propias de las instalaciones conectadas a la barra y que contribuyen a la falla es inferior a 400 [ms]."
+    donde_buscar: "Si la barra analizada es simple (no seccionada), buscar la verificación del tiempo de despeje de las fallas en la barra MT. CUMPLE si los tiempos verificados son menores a 400 ms, y también si el informe reporta tiempos mayores a 400 ms y levanta ese exceso como hallazgo en sus tablas de hallazgos o conclusiones (regla general, sin excepción para este punto). NO cumple si el informe reporta tiempos mayores a 400 ms sin levantarlos como hallazgo."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P6]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem numerado 22 en ese txt"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio (numerado 22 en el txt «dónde buscar»); ya aceptaba que el informe
+            declarara explícitamente el exceso.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit bb80195 (mensaje); tasks/todo.md, sección «Cierre del loop de mejora (2026-07-09, 3 rondas medidas)»"
+          commit: "bb80195"
+          nota: >-
+            En el loop de julio pasó a que el resultado mande aunque el exceso esté levantado,
+            para calzar con la planilla de Epsilon (NO) frente a Añañuca (SI). El commit dice que
+            se eligió el lado estricto y que el punto quedaba para que lo definiera el equipo
+            revisor.
+        - fecha: "2026-07-16"
+          tipo: aprobado_sobre_texto_nuestro
+          confirmado: false
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 3"
+          commit: "2db356c"
+          nota: >-
+            El equipo revisor marcó ✓ la excepción de límites normativos, redactada por nosotros,
+            y respondió que no aplica a otros puntos. El criterio ya lo decía desde bb80195;
+            2db356c solo lo anotó en la cabecera. Se retiró el 2026-10-17: un ✓ sobre texto
+            nuestro no es criterio firme.
+        - fecha: "2026-10-17"
+          tipo: literal_equipo
+          confirmado: true
+          referencia: "tasks/equipo/respuestas_v3_celdas.md:9-21"
+          commit: "da2f9df"
+          nota: >-
+            El equipo revisor retira la excepción y da el propósito: el coordinado ya conoce su
+            incumplimiento y tiene un plan de acción (transmitido por el usuario el 2026-10-17).
+            El criterio pasa a cumplir también con un exceso levantado como hallazgo; entró a git
+            con da2f9df (2026-10-23).
+        - fecha: "2026-10-17"
+          tipo: propuesto
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, punto 23 (donde_buscar); commit bb80195 (prompts.py, línea 209); src/comparador/llm/prompts.py, SYSTEM_CHECKLIST"
+          commit: "da2f9df"
+          nota: >-
+            Al reescribirlo agregamos «buscar la verificación del tiempo de despeje» y que el
+            levantamiento vale «en sus tablas de hallazgos o conclusiones», copiando nuestra regla
+            general de SYSTEM_CHECKLIST (desde bb80195). El equipo revisor dijo solo «levantado
+            como hallazgo» (en el 25, «en las tablas de hallazgos»); P9 y P21 (opción B) preguntan
+            si cuenta lo declarado fuera de ellas.
+  - numero: 24
+    enunciado: "Los esquemas de protección permiten el acceso local a sus parámetros, ajustes, registros oscilográficos de fallas y registros de eventos."
+    donde_buscar: "Lo debe decir explícitamente en el informe (capítulo de levantamiento o verificaciones generales) o en las actas de pruebas; puede aparecer como verificación por relé."
+    origen:
+      relaja_enunciado: false
+      preguntas: []
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 24"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio: debía decirlo explícitamente en el informe y en las tablas de
+            hallazgos.
+        - fecha: "2026-07-09"
+          tipo: propuesto
+          confirmado: false
+          referencia: "commit bb80195 (diff de checklist_puntos.yaml); tasks/todo.md, sección «Cierre del loop de mejora (2026-07-09, 3 rondas medidas)»"
+          commit: "bb80195"
+          nota: >-
+            En el loop de julio se agregaron ubicaciones (capítulo de levantamiento o
+            verificaciones generales, actas de pruebas, verificación por relé) y se quitaron las
+            tablas de hallazgos. El commit no cita ninguna celda de planilla que lo motive: la
+            redacción es nuestra.
+  - numero: 25
+    enunciado: "Los registros oscilográficos de las protecciones cuentan con una estampa de tiempo que está sincronizada mediante GPS"
+    donde_buscar: "Buscar en el capítulo de verificaciones generales o levantamiento (a veces 'sincronización' o 'GPS') y en las actas de pruebas por relé; suele reportarse junto a las verificaciones de registros oscilográficos. CUMPLE en dos casos: (a) el informe muestra que las protecciones cuentan con sincronización GPS, o (b) el informe muestra que NO cuentan, pero lo levanta explícitamente como hallazgo en las tablas de hallazgos (aplicación de la regla general). Solo NO cumple si falta la sincronización y el informe no la levanta como hallazgo."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P21]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 25"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, idéntico al del 24.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "tasks/todo.md, sección «Corrección (2026-07-09, mapeo completo 26/38 puntos vs GT Añañuca)»; commit bb80195 (diff de checklist_puntos.yaml)"
+          commit: "bb80195"
+          nota: >-
+            En el loop de julio se agregó dónde buscar (verificaciones generales o levantamiento,
+            sincronización o GPS, actas por relé), porque los modelos fallaban contra la planilla
+            de Añañuca (SI) y la evidencia parecía estar en anexos.
+        - fecha: "2026-07-16"
+          tipo: literal_equipo
+          confirmado: true
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 4 (fila del punto 25)"
+          commit: "2db356c"
+          nota: >-
+            El equipo revisor da su regla con sus palabras: cumple si hay GPS, y también si falta
+            pero está levantado en las tablas de hallazgos. Entró como casos (a) y (b) en el
+            Bloque 20 (2026-07-16) y se commiteó el 2026-10-16.
+  - numero: 26
+    enunciado: "Las protecciones de sobrecorriente de fases y residual se prueban en al menos tres puntos de operación de las curvas de sobrecorriente (los tres puntos típicamente probados son 1.05xIpu, 5.0xIpu y 8.0xIpu)"
+    donde_buscar: "Este punto muchas veces se llama inyección secundaria o pruebas funcionales, y dicen que parten en 105% hasta 3-32 A. Buscar en el capítulo de pruebas funcionales por paño y en las actas de pruebas (en el cuerpo del informe o en sus anexos). CUMPLE si las actas muestran AL MENOS TRES puntos de operación medidos por función de sobrecorriente — los valores 1.05/5.0/8.0xIpu son los típicos pero no obligatorios; otros tres puntos también cumplen. También CUMPLE si el capítulo de pruebas declara un barrido de la curva por función junto con su resultado, p. ej. 'se evalúan todas las curvas a partir del 105% del pickup (1,05 veces I. pick up), hasta el mayor punto posible (3 A / 32 A)' más la tabla de estado de prueba por función. Si el cuerpo no indica los puntos probados y remite el detalle a actas o protocolos en anexos externos al PDF (carpeta ANEXOS, enlace, 'archivos anexos al informe'), responder no_verificable indicando el anexo — no no_cumple. Solo NO cumple si las actas presentes muestran menos de tres puntos medidos, o si el informe no documenta los puntos probados ni remite a actas (p. ej. solo marca la función como probada en una tabla)."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4, P13]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 26"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, con una errata corregida al transcribirlo en el commit inicial.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit bb80195 (diff de checklist_puntos.yaml); tasks/todo.md, sección «Bloque 9» (2026-07-07)"
+          commit: "bb80195"
+          nota: >-
+            En el loop de julio se agregó buscar en las actas por paño y no cumplir si no traen
+            las mediciones (ausencia como evidencia). El vínculo con la planilla de Epsilon (NO) y
+            sus falsos cumple en 26/27 viene de tasks/todo.md, no del commit; 2db356c reemplazó
+            esa cláusula.
+        - fecha: "2026-07-16"
+          tipo: literal_equipo
+          confirmado: true
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 4 (fila del punto 26)"
+          commit: "2db356c"
+          nota: >-
+            El equipo revisor responde con sus palabras «al menos 3 puntos», y el criterio pasa a
+            «CUMPLE si las actas muestran AL MENOS TRES puntos» (1.05/5.0/8.0xIpu no son
+            obligatorios); «por función», «las actas» y «otros tres puntos» son redacción nuestra.
+            Entró en el Bloque 20 y se commiteó el 2026-10-16.
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); tasks/equipo/preguntas_v3.md, P4; mediciones/diagnosticos/wf_analisis.json (privado)"
+          commit: "0ce842b"
+          nota: >-
+            Se dedujo de las 6 planillas (5 SI, Epsilon NO): buscar en el capítulo de pruebas
+            funcionales, cumplir también con un barrido declarado desde 1,05×Ipu más la tabla de
+            estado por función (Gamma) y no cumplir si solo se marca la función como probada
+            (Epsilon). Con el barrido aprueba sin ver cada punto medido, menos que el «al menos 3
+            puntos» del equipo revisor; rigió desde B1, sin confirmar.
+        - fecha: "2026-10-16"
+          tipo: propuesto
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, punto 26 (donde_buscar); tasks/equipo/preguntas_v3.md, P13"
+          commit: "0ce842b"
+          nota: >-
+            Regla de diseño nuestra (el sistema solo ve el PDF): si el cuerpo no indica los puntos
+            y remite a anexos externos, responde no_verificable y no no_cumple. Alfa y Beta
+            marcan SI apoyados en esos anexos; P13 pregunta si los anexos llegan con el informe.
+  - numero: 27
+    enunciado: "Uno de los puntos probados en las protecciones de sobrecorriente corresponde a 1,05 veces la corriente de pick up de la función. En el caso en que el punto indicado no haya sido probado o no haya arrojado resultado, entonces se buscó la mínima corriente de operación de la función de sobrecorriente (determinación de sensibilidad)."
+    donde_buscar: "Que sea 1.05 x corriente pick up es lo mismo que 105%. Buscar en el capítulo de pruebas funcionales por paño (incluidas sus tablas resumen de estado de pruebas) y en las actas de pruebas los puntos medidos por función. CUMPLE si las actas incluyen el punto 1,05xIpu, si el capítulo de pruebas declara que las pruebas parten ahí (p. ej. 'se evalúan todas las curvas a partir del 105% del pickup (1,05 veces I. pick up)'), o si hay determinación de la mínima corriente de operación (sensibilidad o pickup real). Una mención del factor 1,05 en las tablas resumen de pruebas (p. ej. 'Factor 1,05%' o 1,05xIpu) también es evidencia de que el punto se probó, aunque el resultado sea 'Incorrecta' o la sensibilidad quede pendiente; indicarlo en la referencia. Solo si el cuerpo no declara el punto de partida de las pruebas ni menciona el factor 1,05 del pickup en ninguna parte (metodología, capítulo de pruebas o tablas de resultados de pruebas) y remite el detalle a actas o protocolos en anexos externos al PDF (carpeta ANEXOS, enlace, 'archivos anexos al informe'), responder no_verificable indicando el anexo — no no_cumple. NO cumple si las actas presentes muestran que ninguna prueba parte en 105% ni hay determinación de sensibilidad, o si el informe no documenta puntos medidos ni remite a actas (p. ej. solo marca la función como probada)."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4, P13]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 27"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio: solo la equivalencia entre 1,05×Ipu y 105%.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit bb80195 (diff de checklist_puntos.yaml); tasks/todo.md, sección «Bloque 9» (2026-07-07)"
+          commit: "bb80195"
+          nota: >-
+            En el loop de julio se agregó buscar en las actas y no cumplir si ninguna prueba parte
+            en 105% ni hay sensibilidad (ausencia como evidencia), tras falsos cumple en 26/27
+            contra la planilla de Epsilon (NO). Ese vínculo viene de tasks/todo.md, no del commit.
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); tasks/equipo/preguntas_v3.md, P4; mediciones/diagnosticos/wf_analisis.json (privado)"
+          commit: "0ce842b"
+          nota: >-
+            Se dedujo de las planillas (5 SI, Epsilon NO): basta que el capítulo de pruebas
+            declare que se parte en 1,05×Ipu (Añañuca, Zeta, Gamma) o que una tabla resumen
+            mencione el factor 1,05 aunque el resultado sea Incorrecta (Alfa). Rigió desde B1;
+            el equipo revisor nunca se pronunció sobre el 27.
+        - fecha: "2026-10-16"
+          tipo: propuesto
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, punto 27 (donde_buscar); tasks/equipo/preguntas_v3.md, P13"
+          commit: "0ce842b"
+          nota: >-
+            Regla de diseño nuestra: si el cuerpo no declara el punto de partida ni menciona el
+            factor 1,05 y remite a anexos externos, responde no_verificable y no no_cumple. Se
+            apoya en un solo caso (Beta) y depende de P13.
+  - numero: 28
+    enunciado: "En el Informe de Auditoría se calcula la Desviación Porcentual (DP) entre el tiempo de operación medido (Tm) y el tiempo de operación esperado (Te) de todas las curvas de operación de las protecciones de sobrecorriente probadas mediante la siguiente fórmula: DP = (Tm-Te)/Te [%]. El tiempo de operación esperado (Te) corresponde al tiempo de operación teórico que indica la curva característica de la función indicada en el respectivo manual de operación del equipo."
+    donde_buscar: "Esta información debería estar en tablas, pero generalmente va en los anexos de actas de pruebas: buscar columnas de tiempo esperado, tiempo medido y desviación porcentual (o error %) en las tablas de resultados por función."
+    origen:
+      relaja_enunciado: false
+      preguntas: [P13]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 28"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, el mismo que el del 29.
+        - fecha: "2026-07-09"
+          tipo: propuesto
+          confirmado: false
+          referencia: "commit bb80195 (diff de checklist_puntos.yaml); tasks/todo.md, sección «Cierre del loop de mejora (2026-07-09, 3 rondas medidas)»"
+          commit: "bb80195"
+          nota: >-
+            En el loop de julio se agregó dónde buscar: anexos de actas y columnas de tiempo
+            esperado, tiempo medido y desviación o error %. El commit no cita ninguna celda de
+            planilla: la redacción es nuestra.
+  - numero: 29
+    enunciado: "El Auditor califica los resultados de las pruebas de las protecciones de sobrecorriente comparando la Desviación Porcentual (DP) de las pruebas con la desviación máxima tolerable informada por el proveedor del equipo auditado en su respectivo manual."
+    donde_buscar: "Buscar en el capítulo de pruebas funcionales o inyección secundaria (criterio de evaluación y tablas de resumen por paño) y en las actas de pruebas. CUMPLE si el informe califica el resultado de cada función de sobrecorriente probada (correcta/incorrecta, sin/con hallazgo) usando como criterio explícito la tolerancia de tiempos que indica el fabricante en su manual: p. ej. imágenes o tablas del manual con el porcentaje de error admisible de las curvas junto a una tabla de estado de prueba por función, o un criterio de evaluación por paño del tipo 'no exceden las desviaciones permitidas indicadas en el manual del fabricante' con resultado por ítem. El cálculo punto a punto de la DP puede estar en anexos (eso se evalúa en el punto 28). Que el resultado sea 'incorrecta' no impide cumplir: se evalúa que el informe califique. NO cumple si la referencia a las tolerancias del fabricante es solo genérica (en el resumen, el alcance/metodología o las conclusiones, p. ej. 'comprobación ... de acuerdo con los ajustes programados y las tolerancias indicadas por el fabricante' o 'responden ... dentro de las tolerancias definidas por el fabricante'), o si la calificación de las pruebas de sobrecorriente es solo implícita por excepción ('sin comentario = sin hallazgo') sin una tabla o lista con el resultado explícito por función o ítem probado. Una marca de 'prueba realizada' en una tabla de funciones tampoco es calificación."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 29"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, idéntico al del 28.
+        - fecha: "2026-07-09"
+          tipo: propuesto
+          confirmado: false
+          referencia: "commit bb80195 (diff de checklist_puntos.yaml); tasks/todo.md, sección «Cierre del loop de mejora (2026-07-09, 3 rondas medidas)»"
+          commit: "bb80195"
+          nota: >-
+            En el loop de julio recibió la misma ubicación que el 28 (columnas Te/Tm/DP) y siguió
+            sin describir su evidencia propia, calificar contra la tolerancia del manual. La
+            redacción es nuestra.
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); tasks/equipo/preguntas_v3.md, P4; mediciones/diagnosticos/wf_analisis.json (privado)"
+          commit: "0ce842b"
+          nota: >-
+            Se dedujo de las planillas (5 SI, Epsilon NO): cumple si califica cada función contra
+            la tolerancia del manual como criterio explícito; no bastan la mención genérica ni la
+            calificación implícita por excepción (Epsilon), y un resultado Incorrecta no impide
+            cumplir (Añañuca). Rigió desde B1; el equipo revisor nunca se pronunció sobre el 29.
+  - numero: 30
+    enunciado: "Se realiza la prueba de la función diferencial de transformador, la cual consiste en verificar que la función 87T opera al presentarse cortocircuitos al interior de su zona unitaria de protección. Se verifican las funciones auxiliares de la 87T (restricción por 2da armónica, etc.)"
+    donde_buscar: "Buscar en el capítulo de pruebas y en las actas de pruebas del paño del transformador (o paño CT). Si el paño del transformador existe y sus actas/pruebas NO incluyen la prueba de la función 87T, el punto NO se cumple — la ausencia de la prueba donde debería estar es evidencia de incumplimiento, no motivo de no_verificable."
+    origen:
+      relaja_enunciado: false
+      preguntas: [P9, P10]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 30"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio: solo ubica la prueba en los paños de transformador. Entró al YAML
+            en el commit inicial.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit 3a2cc8f (mensaje); tasks/todo.md, sección «Comparación Sonnet 5 vs Opus 4.8 — Añañuca con rúbrica anclada (2026-07-09)», «Acciones tomadas»"
+          commit: "3a2cc8f"
+          nota: >-
+            Se reescribió en la comparación Sonnet vs Opus sobre Añañuca para que el modelo diera
+            el NO de esa planilla: dice dónde buscar (actas del paño del transformador o CT) y que
+            la ausencia de la prueba es no_cumple, no no_verificable. Redacción nuestra ajustada
+            al GT humano, sin pronunciamiento del equipo revisor; no ha cambiado.
+  - numero: 31
+    enunciado: "Se realiza la prueba de estabilidad de la protección diferencial de transformador, la cual consiste en verificar que la función 87T no opera al presentarse cortocircuitos fuera de su zona unitaria de protección. En particular, se prueba la estabilidad de la 87T con fallas residuales en el lado MT del transformador."
+    donde_buscar: "Buscar en el capítulo de pruebas y en las actas de pruebas del paño del transformador (o paño CT). Si el paño del transformador existe y sus actas/pruebas NO incluyen la prueba de estabilidad de la 87T, el punto NO se cumple — la ausencia de la prueba donde debería estar es evidencia de incumplimiento, no motivo de no_verificable."
+    origen:
+      relaja_enunciado: false
+      preguntas: [P9, P10]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 31"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, el mismo del punto 30. Entró al YAML en el commit inicial.
+        - fecha: "2026-07-09"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "commit 3a2cc8f (mensaje); tasks/todo.md, sección «Comparación Sonnet 5 vs Opus 4.8 — Añañuca con rúbrica anclada (2026-07-09)», «Acciones tomadas»"
+          commit: "3a2cc8f"
+          nota: >-
+            Mismo ajuste que en el 30, para calzar con el NO de la planilla de Añañuca: dice dónde
+            buscar y que la ausencia de la prueba de estabilidad de la 87T es no_cumple. Redacción
+            nuestra ajustada al GT humano, sin pronunciamiento del equipo revisor.
+  - numero: 32
+    enunciado: "Las protecciones de distancia, entre fases y residual, se prueban midiendo los tiempos y los alcances de todas las zonas habilitadas. Al menos uno de los puntos medidos en cada zona corresponde al alcance reactivo."
+    donde_buscar: "Buscar en las actas de pruebas de los paños que tengan protecciones de distancia (función 21). Si la subestación no tiene protecciones de distancia, responder no_verificable indicando que el punto no aplica. Si hay función 21 y las actas no incluyen mediciones de tiempos y alcances por zona, el punto no se cumple."
+    origen:
+      relaja_enunciado: false
+      preguntas: [P11, P6, P13]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 32"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio, sin criterio: solo remitía al informe en general.
+        - fecha: "2026-07-09"
+          tipo: propuesto
+          confirmado: false
+          referencia: "commit bb80195 (mensaje); tasks/todo.md, sección «Cierre del loop de mejora (2026-07-09, 3 rondas medidas)»"
+          commit: "bb80195"
+          nota: >-
+            El commit lo describe solo como «dónde buscar», pero agrega dos reglas nuestras: sin
+            función 21, no_verificable (no aplica); con 21 y sin mediciones de tiempos y alcances
+            por zona, no_cumple. Lo segundo coincide con el NO de Epsilon, pero el commit no lo
+            atribuye a esa celda.
+  - numero: 33
+    enunciado: "Se realiza la prueba de Apertura Efectiva de Interruptor con todas las funciones de protección auditadas, la cual consiste en la verificación del perfecto estado del circuito de trip realizando la apertura del interruptor mediante la operación de la función de protección asociada."
+    donde_buscar: "Hay un capítulo de prueba de disparos efectivos (también llamado 'apertura efectiva de interruptores' o 'pruebas de disparo'): revisar el índice y los capítulos centrales del informe, además de las actas de pruebas por paño."
+    origen:
+      relaja_enunciado: false
+      preguntas: [P23]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (donde buscar).txt, ítem 33"
+          commit: "999225b"
+          nota: >-
+            Texto base de julio: que haya un capítulo de prueba de disparos efectivos.
+        - fecha: "2026-07-09"
+          tipo: propuesto
+          confirmado: false
+          referencia: "commit bb80195 (mensaje); tasks/todo.md, sección «Cierre del loop de mejora (2026-07-09, 3 rondas medidas)»"
+          commit: "bb80195"
+          nota: >-
+            En el loop de julio se agregaron sinónimos del capítulo (apertura efectiva de
+            interruptores, pruebas de disparo) y dónde revisar (índice, capítulos centrales, actas
+            por paño). Es solo ubicación: no cambia qué cuenta para cumplir, y el commit no lo
+            atribuye a una celda del GT.
+  - numero: 34
+    enunciado: "En el Informe de Auditoría se indica en forma clara y explícita todos los hallazgos asociados a las pruebas de operación de los equipos de protección. Es decir, todos los casos en que los resultados de las pruebas no permiten acreditar la correcta operación de las funciones auditadas, tales como tiempos y alcances medidos fuera de rango o la inoperancia de la función y/o equipo."
+    donde_buscar: "En el informe en general, típicamente en las tablas de hallazgos."
+    origen:
+      relaja_enunciado: false
+      preguntas: []
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (salida esperada).txt, ítem 34"
+          commit: "999225b"
+          nota: >-
+            El txt «dónde buscar» termina en el ítem 33: el texto base del 34 parece redactado por
+            nosotros en el commit inicial a partir de la ubicación del ejemplo de «salida
+            esperada». No ha cambiado y ninguna ronda de preguntas lo trata.
+  - numero: 35
+    enunciado: "Las pruebas y verificaciones adicionales realizadas (diferentes a las especificadas en 2, 3, 4, 5, 6 y 7) se especifican y describen claramente, fundamentándose su necesidad."
+    donde_buscar: "Pruebas adicionales = las DIFERENTES a las especificadas en las secciones 2 a 7 de la planilla del CEN (DUF, ECAP/printouts, coordinación, barra/despeje, acceso/registros/sincronización, pruebas de operación). Para ESTE punto no se consideran las pruebas estándar de operación (balance, funcionales, inyección, curvas, disparos/apertura efectiva) ni las que este checklist evalúa en sus propios puntos — reconexión automática (punto 36), sistemas auxiliares AC/CC (punto 37) e inspección visual del estado de equipos y armarios (punto 38) —, aunque la planilla las agrupe en su sección 8. Si el informe no declara pruebas o verificaciones adicionales (discrecionales del auditor), responder no_verificable indicando que el punto no aplica. Si las declara: cumple si las describe y fundamenta su necesidad; no_cumple si no."
+    origen:
+      relaja_enunciado: false
+      preguntas: [P12, P6]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (salida esperada).txt, ítem 35"
+          commit: "999225b"
+          nota: >-
+            Texto base sin criterio: «dónde buscar» no tiene texto propio para el 35, y el ejemplo
+            de «salida esperada» lo da como no verificable.
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); tasks/equipo/preguntas_v3.md, P12; mediciones/diagnosticos/wf_analisis.json (privado)"
+          commit: "0ce842b"
+          nota: >-
+            Excluye del 35 lo que el checklist evalúa en los puntos 36 a 38 y responde
+            no_verificable (no aplica) si el informe no declara pruebas adicionales: 5 de 6
+            planillas marcan N/A en el ítem 8.1 y solo Epsilon marca SI, por la inspección visual.
+            Sin confirmar (P12); commit del 2026-10-17.
+        - fecha: "2026-10-16"
+          tipo: propuesto
+          confirmado: false
+          referencia: "mediciones/diagnosticos/workflows/w26d4q0c4.json (privado)"
+          commit: "0ce842b"
+          nota: >-
+            Redacción nuestra: la definición por secciones 2 a 7 parafrasea el enunciado, y la
+            cláusula «aunque la planilla las agrupe en su sección 8» viene del arreglo que propuso
+            la revisión adversarial. Pasar el N/A a no_verificable es convención nuestra.
+  - numero: 36
+    enunciado: "Si es que se realizan pruebas a la función de reconexión automática, las cuales consisten en la medición de todas las temporizaciones ajustadas y de la secuencia de operación configurada, estas se llevan a cabo y se reportan adecuadamente."
+    donde_buscar: "Buscar los RESULTADOS de la prueba de la función 79 (reconexión) en el capítulo de pruebas funcionales / inyección secundaria por paño: típicamente una tabla 'Resumen estado de pruebas' por paño con la fila 79 (Correcta / Incorrecta / Hallazgo), o la tabla de evaluación 'Función de reconexión automática' con el resultado de cada ítem (Sin hallazgo / Con hallazgo). CUMPLE si el informe reporta un resultado de la prueba de la 79 en los paños que la tienen habilitada, aunque el detalle de temporizaciones y secuencia esté en un anexo o enlace externo. Las pruebas de 79 no realizadas o incompletas también cumplen si el informe las declara explícitamente como pendientes en sus hallazgos (p. ej. clasificación 'Prueba pendiente'), por aplicación de la regla general. NO cumple si el informe dice que probó la 79 (p. ej. la incluye en su tabla de puntos de evaluación o la marca como 'prueba realizada') pero no reporta su resultado en ninguna parte. Que la 79 aparezca solo en tablas de ajustes, de funciones habilitadas o en hallazgos de ECAP/DUF NO acredita la prueba. Si ningún paño tiene la función 79 habilitada, responder no_verificable indicando que el punto no aplica."
+    origen:
+      relaja_enunciado: true
+      preguntas: [P4, P6]
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (salida esperada).txt, ítem 36"
+          commit: "999225b"
+          nota: >-
+            «Dónde buscar» no tiene texto propio para el 36; el texto base coincide con la
+            ubicación del ejemplo de «salida esperada».
+        - fecha: "2026-07-16"
+          tipo: aprobado_sobre_texto_nuestro
+          confirmado: false
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 3"
+          commit: ""
+          nota: >-
+            Origen de la regla general en que se apoya la cláusula de pruebas pendientes del 36:
+            el equipo revisor marcó ✓ sobre un texto nuestro, que no es criterio firme. Ese día el
+            36 no cambió.
+        - fecha: "2026-10-16"
+          tipo: inferido_planillas
+          confirmado: false
+          referencia: "tasks/equipo/preguntas_v3.md, P4; src/comparador/checklist_puntos.yaml, cabecera (hints ajustados el 2026-10-16); mediciones/diagnosticos/wf_analisis.json (privado)"
+          commit: "0ce842b"
+          nota: >-
+            Exige el resultado de la 79 por paño aunque el detalle esté en un anexo aparte
+            (Alfa y los otros informes de Reliable Energy marcan SI) y da no_cumple si dice
+            que la probó sin dar el resultado (Epsilon NO). Que los pendientes declarados como
+            hallazgo cumplan sale de una nota ambigua de la planilla de Beta (SI): relajación
+            sin confirmar.
+        - fecha: "2026-10-16"
+          tipo: propuesto
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, punto 36 (donde_buscar); mediciones/diagnosticos/wf_analisis.json (privado)"
+          commit: "0ce842b"
+          nota: >-
+            Convenciones nuestras: si ningún paño tiene la 79, no_verificable (no aplica; ninguna
+            planilla trata ese caso), y la 79 en tablas de ajustes, de funciones habilitadas o en
+            hallazgos de ECAP/DUF no acredita la prueba. Excluir las tablas de ajustes salió de un
+            run de Añañuca que las citó; excluir ECAP/DUF calza con Epsilon (NO).
+        - fecha: "2026-10-17"
+          tipo: literal_equipo
+          confirmado: true
+          referencia: "tasks/equipo/respuestas_v3_celdas.md:9-21"
+          commit: ""
+          nota: >-
+            Reconfirma sin excepciones, y con el porqué, la regla general que invoca la cláusula
+            de pendientes del 36 (transmitido por el usuario el 2026-10-17). Confirma la regla, no
+            su aplicación a pruebas 79 no realizadas, que es nuestra (P9, opción B); el texto del
+            36 no cambió.
+  - numero: 37
+    enunciado: "Si es que se realizan pruebas y/o verificaciones a los Sistemas Auxiliares de AC y CC, las cuales consisten en la acreditación del buen estado de operación de los cargadores y bancos de baterías de la subestación y las baterías del control de los reconectadores, estas se llevan a cabo y se reportan adecuadamente."
+    donde_buscar: "Buscar capítulo o sección de servicios/sistemas auxiliares. CUMPLE si el informe muestra ALGO sobre los sistemas auxiliares AC/CC (mención de verificación, estado de cargadores/baterías, observaciones) aunque no traiga acta o registro detallado de la prueba. Solo NO cumple si el informe no dice nada sobre los sistemas auxiliares."
+    origen:
+      relaja_enunciado: true
+      preguntas: []
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (salida esperada).txt, ítem 37"
+          commit: "999225b"
+          nota: >-
+            «Dónde buscar» no tiene texto propio para el 37; el texto base coincide con la
+            ubicación del ejemplo de «salida esperada».
+        - fecha: "2026-07-16"
+          tipo: literal_equipo
+          confirmado: true
+          referencia: "tasks/equipo/respuestas_v1.md, pregunta 4 (fila del punto 37); tasks/todo.md, sección «Bloque 20»"
+          commit: "2db356c"
+          nota: >-
+            La pregunta mostraba lo que exigía el sistema (acta o registro de la prueba) y el
+            equipo revisor respondió con sus palabras, sobre nuestra plantilla «apruebo si…
+            aunque…»; el criterio recoge esa frase. Se aplicó en el Bloque 20 (2026-07-16) y se
+            commiteó el 2026-10-16.
+        - fecha: "2026-07-16"
+          tipo: propuesto
+          confirmado: false
+          referencia: "src/comparador/checklist_puntos.yaml, punto 37 (donde_buscar)"
+          commit: "2db356c"
+          nota: >-
+            Los ejemplos entre paréntesis y «Solo NO cumple si el informe no dice nada» son
+            redacción nuestra, la contracara de la frase del equipo revisor. Así el criterio da
+            no_cumple, y no «no aplica», cuando el informe no menciona los sistemas auxiliares,
+            aunque el enunciado es condicional.
+  - numero: 38
+    enunciado: "Si es que se realizan verificaciones al estado de conservación de los equipos, la limpieza de los paneles o gabinetes, marcas en el alambrado, rastros de roedores, efectos de la humedad, etc. Estas se llevan a cabo y se reportan adecuadamente."
+    donde_buscar: "En el informe en general, típicamente en las tablas de hallazgos."
+    origen:
+      relaja_enunciado: false
+      preguntas: []
+      historia:
+        - fecha: "2026-07-07"
+          tipo: base_checklist_general
+          confirmado: false
+          referencia: "checklist_general/Checklist (salida esperada).txt, ítem 38"
+          commit: "999225b"
+          nota: >-
+            «Dónde buscar» no tiene texto propio para el 38; el texto base coincide con la
+            ubicación del ejemplo de «salida esperada» y no ha cambiado nunca.

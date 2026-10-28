@@ -1,0 +1,73 @@
+[project]
+name = "comparador-hallazgos"
+version = "0.1.0"
+description = "Comparador de hallazgos PDF vs Excel para auditorías de protecciones eléctricas"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+    "pypdf>=4.0",
+    "openai>=1.30",
+    "anthropic>=0.80",
+    "python-multipart>=0.0.9",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "pymupdf>=1.24",
+    "mammoth>=1.6",
+    "streamlit>=1.49",  # st.image(width="stretch") del visor de página
+    "xhtml2pdf>=0.2.11",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "mypy>=1.10",
+    "ruff>=0.4",
+    "pandas-stubs>=2.2",
+    "types-PyYAML>=6.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+comparador = ["catalogo_empresas.yaml", "checklist_puntos.yaml", "mapeo_checklist_gt.yaml", "py.typed"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["pandas.*", "openpyxl.*", "fitz.*", "mammoth.*", "xhtml2pdf.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["comparador.llm.client"]
+disable_error_code = ["attr-defined", "unused-ignore"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# pytester: los tests de la compuerta de los golden corren sesiones aparte.
+addopts = "-p pytester"
+# Los golden copian datos privados al tmp_path (reportes, raw de los jueces con
+# los prompts): solo quedan los de los tests que fallan, para diagnosticarlos.
+tmp_path_retention_policy = "failed"
+markers = [
+    "golden: datos reales privados (mediciones/, informes_reales/); se saltan si no existen (con GOLDEN_OBLIGATORIO=1, saltarse falla salvo motivo «exento:»)",
+]

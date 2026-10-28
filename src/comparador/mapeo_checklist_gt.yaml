@@ -1,0 +1,61 @@
+# Mapeo entre los 38 puntos del checklist del sistema (checklist_puntos.yaml)
+# y los códigos de ítem del formato de "CheckList Revisión" del CEN — el Excel
+# que la revisora humana completa con SI/NO por ítem y que usamos como ground
+# truth para evaluar el checklist automático (ver evaluar_checklist.py).
+#
+# El formato del CheckList de Revisión es único del CEN (no varía por empresa
+# auditora), por lo que este mapeo se define UNA vez y sirve para evaluar
+# cualquier informe del que exista revisión humana.
+#
+# Notas del mapeo:
+# - Varios puntos del sistema pueden apuntar al mismo ítem del GT: los puntos
+#   3, 4 y 5 (código / fecha / versión) son desgloses del ítem 1.4 del GT
+#   (la "viñeta" que identifica el informe).
+# - El GT real tiene el código 7.7 duplicado (prueba 87T y estabilidad 87T);
+#   el sufijo "#2" refiere a la segunda ocurrencia de un código repetido.
+# - Los ítems del GT sin punto equivalente en el sistema (p. ej. la sección
+#   de la plataforma Infotécnica, 2.1/2.2/3.1/3.2/3.3, o la Minuta de
+#   Respuestas, 10.x) no aparecen acá: requieren fuentes externas al PDF y
+#   quedaron fuera de los 38 puntos a propósito.
+#
+# Es configuración: editar este archivo NO cambia el schema.
+
+mapeo:
+  1: "1.2"    # propietario (Coordinado)
+  2: "1.3"    # subestación auditada
+  3: "1.4"    # código propio        ┐
+  4: "1.4"    # fecha de emisión     ├ desgloses de la viñeta del GT
+  5: "1.4"    # versión del informe  ┘
+  6: "2.3"    # DUF representa fielmente las instalaciones
+  7: "3.4"    # relés/funciones auditadas, paño e interruptor
+  8: "3.5"    # resumen de ajustes por relé
+  9: "3.6"    # grupos de ajustes y criterio de habilitación
+  10: "3.7"   # esquemas adaptativos
+  11: "3.8"   # diferencias ECAP Infotécnica / Coordinado / terreno
+  12: "4.1"   # simulación con DigSilent Power Factory
+  13: "4.7"   # aportes PMGD
+  14: "4.5"   # magnitud de corrientes de cortocircuito
+  15: "4.6"   # cortocircuitos en cabecera de paños MT
+  16: "4.8"   # todas las condiciones topológicas
+  17: "4.10"  # tablas de corrientes por escenario
+  18: "4.11"  # pasos de coordinación por escenario
+  19: "4.13"  # casos con paso de coordinación <= 300 ms explícitos
+  20: "5.9"   # casos con tiempo de despeje < 400 ms explícitos (5.8 es otro ítem: determinar el despeje por escenario; corregido 2026-10-16)
+  21: "4.14"  # hojas de coordinación con curvas
+  22: "5.2"   # barra seccionada: diferencial por sección
+  23: "5.3"   # barra simple: despeje < 400 ms por simulación
+  24: "6.1"   # acceso local a parámetros/registros
+  25: "6.2"   # oscilográficos sincronizados por GPS
+  26: "7.3"   # sobrecorriente probada en >= 3 puntos
+  27: "7.4"   # punto a 1,05 x Ipickup
+  28: "7.5"   # cálculo de Desviación Porcentual (DP)
+  29: "7.6"   # calificación de DP vs tolerancia del fabricante
+  30: "7.7"   # prueba de la función 87T
+  31: "7.7#2" # prueba de estabilidad de la 87T (código duplicado en el GT)
+  32: "7.8"   # protecciones de distancia: tiempos y alcances
+  33: "7.9"   # apertura efectiva de interruptor
+  34: "7.10"  # hallazgos de pruebas explícitos
+  35: "8.1"   # pruebas adicionales especificadas
+  36: "8.2"   # reconexión automática
+  37: "8.3"   # sistemas auxiliares AC/CC
+  38: "8.4"   # estado de conservación de equipos

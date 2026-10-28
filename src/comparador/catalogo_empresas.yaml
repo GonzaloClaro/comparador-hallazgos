@@ -1,0 +1,198 @@
+# Catálogo de hints por empresa auditora (DISENO.md §6).
+# Fuente de verdad de la variabilidad conocida de formatos de PDF.
+# Actualizar este archivo NO es un cambio de schema (no incrementa schema_version).
+# Verificado contra fotos de informes reales el 2026-07-07 (Reliable Energy /
+# COORDINADO A Iota y Ensaut / COORDINADO B Theta) y contra los informes completos
+# de Beta y Eta (Ensaut) y Alfa, Zeta y Gamma (Reliable
+# Energy) el 2026-10-16.
+
+Ensaut:
+  descripcion_formato: |
+    Ensaut usa dos variantes de tabla resumen de hallazgos. Identifica cuál
+    trae el recorte antes de extraer.
+
+    Variante A (ej. Epsilon, Theta): las tablas van por equipo dentro de una
+    tabla mayor agrupada por paño, con un banner superior tipo "RESUMEN DE
+    HALLAZGOS PAÑOS BT1/ET1 - TRANSFORMADOR N°1". La tabla se divide en dos
+    macro-secciones "HALLAZGOS RELEVANTES" (izquierda) y "HALLAZGOS MENORES"
+    (derecha), cada una con sus columnas Clasificación, Descripción Hallazgo,
+    Comentario específico. El relé va en la columna Equipo. La calificación
+    NO viene como columna: es la macro-sección donde aparece el hallazgo.
+
+    Variante B (ej. Beta, Eta): una tabla plana por paño titulada
+    "Tabla Resumen N: Hallazgos Paño X." con columnas Relé | Clasificación
+    del Hallazgo | Descripción del Hallazgo | Acción Correctiva del Hallazgo |
+    Calificación. La calificación es COLUMNA explícita con valores
+    "Relevante" / "Menor". Ojo: "Calificación" (severidad) y "Clasificación
+    del Hallazgo" (tipo de hallazgo) son columnas distintas de nombre casi
+    idéntico.
+  mapeo_columnas:
+    clasificacion: ["Clasificación", "Clasificación del Hallazgo"]
+    descripcion: ["Descripción Hallazgo", "Descripción del Hallazgo"]
+    accion_correctiva: ["Comentario específico", "Acción Correctiva del Hallazgo"]
+    calificacion: ["Calificación"]
+  # true por la variante A; el mapeo de "calificacion" cubre la variante B
+  # (el prompt pide la columna cuando existe y la sección visual si no).
+  calificacion_por_seccion_visual: true
+  identificacion_rele: >-
+    celda Equipo (variante A) o Relé (variante B) de la tabla resumen del
+    paño. Usa EXACTAMENTE la grafía de esa celda, nunca la de las secciones
+    de desarrollo (x.1 Identificación), del resumen ejecutivo ni de la tabla
+    de cumplimiento normativo. En la variante B la celda Relé está combinada
+    verticalmente: cada fila hereda el relé del bloque combinado que la
+    abarca (normalmente todas las filas del paño), y el texto puede venir
+    quebrado en líneas ("GE / 12IAC53A5 / A" es "GE 12IAC53A5A").
+  notas_adicionales: |
+    - El paño es SOLO el código del título de la Tabla Resumen ("Tabla
+      Resumen 1: Hallazgos Paño BT1/ET1." → "BT1/ET1"), sin el descriptor
+      que sigue al guion ("Hallazgos paño DT1 – P.NEUTRO." → "DT1"). No tomes
+      el paño de la tabla de cumplimiento normativo, de la tabla de equipos
+      ni del capítulo de coordinación: en Ensaut no siempre coinciden con la
+      tabla resumen.
+    - Las tablas resumen sin código de paño (ej. "Tabla Resumen 23: Hallazgos
+      Tiempos Teóricos de Operación.", tablas de análisis de coordinación,
+      con relé "-") son TRANSVERSALES: no las reportes como paño.
+    - Un mismo paño puede tener múltiples equipos/relés (ej: ABB RET670, ABB REL670, SEL 351S).
+    - No deduplicar: filas idénticas de la tabla son hallazgos distintos
+      (hay filas repetidas legítimas, también en el Excel).
+    - Una tabla puede continuar en la página siguiente sin título (con el
+      encabezado de columnas repetido): esas filas siguen siendo del mismo paño.
+    - Si una página trae dos o más tablas resumen, extrae solo la del paño pedido.
+    - Vocabulario oficial de clasificación del Excel regulatorio (lista
+      desplegable de "Clasificación del Hallazgo"): "Verificación DUF",
+      "Verificación ECAP", "Ver. Coord. de Protecciones",
+      "Ver. 87B/Tpo Máx Despeje Falla", "Ver. Acceso, Registro y Sincr.",
+      "Prueba Oper. de Protección", "Prueba Apert. de Interruptor",
+      "Prueba Estabilidad 87T", "Prueba Pendiente",
+      "Servicios Auxiliares CA-CC", "Otros".
+      Si la tabla ya trae una clasificación de este vocabulario (variante B),
+      cópiala literal, carácter por carácter. Si trae una frase larga
+      (variante A, ej. "Base de Infotécnica, ECAP no disponible en plataforma
+      web", "Coherencia de información, DUF"), usa la categoría corta del
+      vocabulario cuando el tema calce claramente; si no calza con ninguna,
+      conserva la frase del PDF.
+  # Patrones de filas transversales del Excel (sin relé específico): match por
+  # contains sobre la columna Relé, normalizado (sin acentos/mayúsculas).
+  # Usar patrones multi-palabra específicos para no colisionar con modelos
+  # de relé reales. Decisión del equipo revisor 2026-07-16 (pregunta 7, opción b).
+  filas_transversales:
+    - "análisis de coordinación"
+    - "sensibilidad del sistema de protecciones"
+
+Sdi:
+  descripcion_formato: |
+    [Pendiente de caracterizar cuando se disponga de un PDF de ejemplo.]
+  mapeo_columnas: {}
+  calificacion_por_seccion_visual: false
+  identificacion_rele: "pendiente"
+  notas_adicionales: |
+    [Pendiente.]
+
+ReliableEnergy:
+  descripcion_formato: |
+    Los informes de Reliable Energy traen una tabla resumen por paño titulada
+    "Tabla N: Resumen de hallazgos y recomendaciones Paño X", precedida por
+    un encabezado de sección tipo "2.1 Paño C1" (en PDFs convertidos desde
+    Word la numeración puede faltar: "Paño C1"). El encabezado de columnas
+    varía según la versión del informe:
+    - Añañuca / Alfa: Ítem | Conclusión | Relevancia Hallazgo | Recomendación
+    - Zeta: Ítem | Descripción del Hallazgo | Calificación | Acción Correctiva del Hallazgo
+    - Gamma: ÍTEM | CLASIFICACIÓN DEL HALLAZGO | CALIFICACIÓN | ACCIÓN CORRECTIVA DEL HALLAZGO.
+      Ojo: en esta variante la columna "CLASIFICACIÓN DEL HALLAZGO" trae la
+      DESCRIPCIÓN del hallazgo (va a "descripcion"), nunca la categoría.
+    En los alimentadores el relé se identifica en el texto que precede a la
+    tabla ("Protección de alimentador, Relé SEL 351R, Serial: 1000000004,
+    Paño C1 – Norte"): ahí el relé es "SEL 351R", el paño es el
+    código corto "C1" (ignora el serial y el nombre del alimentador que
+    viene después del guion).
+    La calificación viene como columna explícita ("Relevancia Hallazgo",
+    "Calificación" o "CALIFICACIÓN") con valores tipo "Sin hallazgo",
+    "Criticidad menor", "Criticidad relevante".
+    Una celda puede contener múltiples sub-hallazgos con bullets.
+  mapeo_columnas:
+    clasificacion: ["Ítem"]
+    descripcion: ["Conclusión", "Descripción del Hallazgo", "CLASIFICACIÓN DEL HALLAZGO"]
+    accion_correctiva: ["Recomendación", "Acción Correctiva del Hallazgo", "ACCIÓN CORRECTIVA DEL HALLAZGO"]
+    calificacion: ["Relevancia Hallazgo", "Calificación", "CALIFICACIÓN"]
+  calificacion_por_seccion_visual: false
+  identificacion_rele: >-
+    párrafo o lista que precede a la tabla resumen del paño. Usa la grafía
+    literal de ese párrafo aunque el índice o los títulos de los capítulos de
+    desarrollo usen otra (ej. en Zeta el párrafo dice "Relé COOPER FORM 6"
+    aunque el índice diga "COOPER KYLE FORM 6"; en otro informe el párrafo
+    puede decir "COOPER KYLE FORM 6" y esa es entonces la grafía). En tablas
+    de transformador, el rótulo dentro de la celda solo indica a CUÁL de los
+    relés listados corresponde el hallazgo (ver notas).
+  # Decisiones pendientes del equipo revisor, a propósito fuera de las notas hasta que
+  # responda: deduplicar incumplimientos repetidos entre filas, generar
+  # "Prueba Pendiente" desde el texto previo a la tabla, y tratar como
+  # hallazgo una sub-fila "Sin hallazgo" cuyo texto dice "No cumple".
+  # "Ver. Tiempo Máx. Actuación" solo existe en la lista desplegable de la
+  # plantilla antigua (Gamma); en la nueva (Añañuca, Zeta, Alfa)
+  # ese valor es "Ver. 87B/Tpo Máx Despeje Falla" y la Etapa 4 no tiene alias
+  # entre ambas.
+  notas_adicionales: |
+    - Filas con "Sin hallazgo" o "Correcto, sin anormalidades" NO son hallazgos.
+    - "No se emiten recomendaciones." en la columna Recomendación también
+      indica ausencia de hallazgo.
+    - En "Cumplimiento NTSyCS" la celda es una mini-checklist de ítems
+      marcados "Cumple" / "No cumple". Dentro de una sub-fila calificada
+      "Criticidad menor" o "Criticidad relevante", cada ítem marcado "No
+      cumple" es un hallazgo, aunque el texto siga después (artículo citado,
+      explicación); los "Cumple" se filtran. Si la sub-fila dice "Sin
+      hallazgo", no extraigas nada de ella aunque algún ítem diga "No cumple".
+    - Criticidades apiladas: Relevancia/Calificación y Recomendación/Acción
+      pueden venir partidas en sub-filas alineadas frente a una sola celda de
+      Conclusión/Descripción con varios bullets. Cada criticidad se asocia a
+      los bullets cuya acción correctiva está en esa misma sub-fila (ej:
+      Documentación Técnica con "Criticidad menor" para los diagramas y
+      "Criticidad relevante" para el estudio de coordinación). No emparejes
+      por posición: la descripción puede tener más bullets que sub-filas, y
+      los que dicen que algo está correcto no son hallazgos. Una sub-fila con
+      dos acciones independientes son dos hallazgos con la misma criticidad.
+    - Tablas de transformador ("Paño HT1/CT1", "Paños BT1 y CT1", "Paño
+      BT1-CT1"): cubren varios relés, cada uno con su propio sub-paño, dado
+      en la lista "Relé X, Serial: …, Paño Y" que precede a la tabla o en el
+      rótulo dentro de la celda ("SEL351S (CT1A)", "CT1A/CT1B:", "INGEPAC
+      EF-TD:", "BT1:"). Asigna cada hallazgo al relé que le corresponde según
+      esa lista o rótulo. Si la fila no tiene rótulo, el hallazgo aplica a
+      todos los relés listados antes de la tabla: desdóblalo en uno por relé.
+      Como paño de cada hallazgo usa el sub-paño de ese relé, que viene junto
+      a su nombre en la lista de relés de arriba (regla 7): ej. "CT1A" o
+      "CT1B" para el SEL 351S de la tabla "HT1/CT1", "HT1" para su SEL 311C.
+      Un sub-paño compuesto se reporta unido por guion ("Paños BT1 y CT1" →
+      "BT1-CT1"): el sistema lo desdobla. Un mismo modelo puede repetirse en
+      dos sub-paños (ej. SEL 551C en BT1 y en CT1): los distingue el rótulo
+      o el orden de la lista; una fila que aplica a ese modelo sin distinguir
+      sub-paño va a cada uno de sus sub-paños.
+    - El paño de cada hallazgo es el de la tabla (en tablas de transformador,
+      según la regla de sub-paños anterior). Ignora menciones a otros paños
+      dentro del texto de la descripción o la acción: hay errores de copia
+      conocidos (ej. la tabla de C3 pide "actualizar ECAP para el paño E5").
+    - Los ítems del PDF son categorías largas ("Estado General Relé/Unidad de
+      control", "Verificación de Alambrado y equipos que componen el sistema
+      de protección", "Documentación Técnica", "Cumplimiento NTSyCS",
+      "Coordinación de Protecciones (Verificado en DIgSILENT)", "Comparación
+      de ajustes de Protección", "Comparación de configuraciones Lógicas",
+      "Verificación de curvas de protecciones", "Verificación de vías de
+      disparo", "Batería de Respaldo", "Comtrades"). El Excel regulatorio usa
+      categorías cortas; cuando el bullet calce claramente, usa la del Excel
+      como "clasificacion", literal:
+      · DUF → "Verificación DUF"
+      · ECAP → "Verificación ECAP"
+      · sincronización horaria, registros oscilográficos, registro o
+        exportación de eventos → "Ver. Acceso, Registro y Sincr."
+      · coordinación de protecciones → "Ver. Coord. de Protecciones"
+      · incumplimiento del Art. 3-24 literal b) numeral III →
+        "Ver. 87B/Tpo Máx Despeje Falla"
+      · incumplimiento del Art. 5-40 literal b) (tiempo de despeje ≥ 400 ms
+        en barra de MT) → "Ver. Tiempo Máx. Actuación"
+      · función o prueba pendiente de verificar → "Prueba Pendiente"
+      · prueba de operación con resultado fuera de rango →
+        "Prueba Oper. de Protección"
+      En tiempos de actuación/despeje manda el artículo citado (en la
+      descripción o en la acción), no la mención de los 400 ms: Art. 3-24
+      b) III → "Ver. 87B/Tpo Máx Despeje Falla" aunque el texto hable de un
+      despeje superior a 400 ms; solo el Art. 5-40 b) va a
+      "Ver. Tiempo Máx. Actuación". Si no calza con ninguna, conserva el
+      ítem del PDF.

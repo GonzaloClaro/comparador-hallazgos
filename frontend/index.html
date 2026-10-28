@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comparador de Hallazgos</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="navbar-cen">
+    <div class="nav-dots">
+      <span class="nav-dot" style="background:#E8712B"></span>
+      <span class="nav-dot" style="background:#EF4444"></span>
+      <span class="nav-dot" style="background:#EAB308"></span>
+      <span class="nav-dot" style="background:#22C55E"></span>
+      <span class="nav-dot" style="background:#0C7BB3"></span>
+    </div>
+    <span class="nav-titulo">COMPARADOR DE HALLAZGOS</span>
+  </nav>
+
+  <!-- ===== PANTALLA DE CARGA ===== -->
+  <section id="pantalla-carga" class="pantalla activa">
+    <div class="carga-container">
+      <h1>Comparador de Hallazgos</h1>
+      <p class="subtitulo">Herramienta de comparación PDF vs Excel</p>
+
+      <div class="selector-empresa" id="selector-empresa">
+        <p class="selector-empresa-label">Empresa auditora</p>
+        <div class="selector-empresa-opciones">
+          <label class="empresa-opcion">
+            <input type="radio" name="empresa-auditora" value="Ensaut">
+            <span>Ensaut</span>
+          </label>
+          <label class="empresa-opcion">
+            <input type="radio" name="empresa-auditora" value="Sdi">
+            <span>Sdi</span>
+          </label>
+          <label class="empresa-opcion">
+            <input type="radio" name="empresa-auditora" value="ReliableEnergy">
+            <span>Reliable Energy</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="upload-zona">
+        <div class="upload-box" id="drop-pdf">
+          <div class="upload-icono">PDF</div>
+          <p>Informe técnico (PDF o DOCX)</p>
+          <input type="file" id="input-pdf" accept=".pdf,.docx" hidden>
+          <button class="btn-seleccionar" onclick="document.getElementById('input-pdf').click()">
+            Seleccionar informe
+          </button>
+          <span class="nombre-archivo" id="nombre-pdf"></span>
+        </div>
+
+        <div class="upload-box" id="drop-excel">
+          <div class="upload-icono">Excel</div>
+          <p>Tabla de hallazgos (Excel)</p>
+          <input type="file" id="input-excel" accept=".xlsx,.xls" hidden>
+          <button class="btn-seleccionar" onclick="document.getElementById('input-excel').click()">
+            Seleccionar Excel
+          </button>
+          <span class="nombre-archivo" id="nombre-excel"></span>
+        </div>
+      </div>
+
+      <button id="btn-iniciar" class="btn-primario" disabled>Iniciar comparación</button>
+
+      <div id="historial-link">
+        <a href="#" onclick="mostrarHistorial(); return false;">Ver procesamientos anteriores</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PANTALLA DE PROCESAMIENTO ===== -->
+  <section id="pantalla-procesando" class="pantalla">
+    <div class="procesando-container">
+      <h2>Procesando...</h2>
+      <div class="timer" id="timer">00:00</div>
+      <div class="etapa-actual" id="etapa-actual">Iniciando...</div>
+      <div class="etapas-completadas" id="etapas-completadas"></div>
+      <div id="acciones-error" style="display:none">
+        <a id="link-logs" class="btn-secundario" href="#" download>Descargar logs del run</a>
+        <button class="btn-secundario" onclick="volverInicio()">Volver al inicio</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PANTALLA DE RESULTADOS ===== -->
+  <section id="pantalla-resultados" class="pantalla">
+    <!-- Header del informe -->
+    <header id="header-informe" class="header-informe"></header>
+
+    <!-- Tiles de resumen -->
+    <div id="tiles-resumen" class="tiles-resumen"></div>
+
+    <!-- Barra de filtros -->
+    <div class="barra-filtros">
+      <select id="filtro-estado">
+        <option value="">Todos los estados</option>
+        <option value="coincide">Coinciden</option>
+        <option value="difiere">Difieren</option>
+        <option value="falta_en_excel">Faltan en Excel</option>
+        <option value="extra_en_excel">Falta en el PDF</option>
+      </select>
+      <select id="filtro-pano"><option value="">Todos los paños</option></select>
+      <select id="filtro-rele"><option value="">Todos los relés</option></select>
+      <button class="btn-secundario" onclick="expandirTodo()">Expandir todo</button>
+      <button class="btn-secundario" onclick="colapsarTodo()">Colapsar todo</button>
+      <div class="botones-descarga">
+        <button class="btn-descarga" onclick="descargarExcel()">Descargar Excel</button>
+        <button class="btn-descarga" onclick="descargarCSV()">Descargar CSV</button>
+        <button class="btn-descarga" onclick="descargarFeedback()">Exportar feedback (.md)</button>
+      </div>
+    </div>
+
+    <!-- Leyenda de colores y símbolos -->
+    <details class="leyenda">
+      <summary>Leyenda de colores y símbolos</summary>
+      <div class="leyenda-grupos">
+        <div><strong>Estados:</strong>
+          <span class="ley-chip" style="background:var(--verde-claro)">Coincide</span>
+          <span class="ley-chip" style="background:var(--amarillo-claro)">Difiere (revisar campos)</span>
+          <span class="ley-chip" style="background:#fff8f0">&#8505; Falta en el PDF (informativo)</span>
+          <span class="ley-chip" style="background:var(--rojo-claro)">&#9888; Falta en Excel (grave: no llega al regulador)</span>
+        </div>
+        <div><strong>Tipo de match:</strong>
+          <span class="ley-chip" style="background:var(--azul-claro)">U = único por clasificación (seguro)</span>
+          <span class="ley-chip" style="background:var(--verde-claro)">= = descripción idéntica (seguro)</span>
+          <span class="ley-chip" style="background:var(--lila)">~ = semántico confianza alta</span>
+          <span class="ley-chip" style="background:var(--amarillo-claro)">? = confianza baja, revisar</span>
+          <span class="ley-chip" style="background:var(--rojo-claro)">! = sin match</span>
+        </div>
+        <div><strong>Checklist:</strong>
+          <span class="ley-chip"><span class="check-verde">&#10003;</span> cumple</span>
+          <span class="ley-chip"><span class="check-rojo">&#10007;</span> no cumple</span>
+          <span class="ley-chip"><span class="check-gris">&mdash;</span> no verificable: revisar a mano</span>
+        </div>
+        <div><strong>Columna Feedback:</strong>
+          <span class="ley-chip">&#10003; el sistema acertó</span>
+          <span class="ley-chip">&#10007; el sistema se equivocó (alimenta la mejora)</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- Checklist de aprobación (38 puntos) -->
+    <div id="contenedor-checklist"></div>
+
+    <!-- Secciones de paños -->
+    <div id="contenedor-panos"></div>
+
+    <!-- Comentarios de la revisora -->
+    <div class="seccion-comentarios">
+      <h3>Comentarios de la revisión</h3>
+      <textarea id="comentarios-revision" rows="4"
+        placeholder="Observaciones generales de esta revisión (se guardan automáticamente)..."></textarea>
+      <span id="estado-feedback" class="estado-feedback"></span>
+    </div>
+
+    <!-- Panel de detalle -->
+    <div id="panel-detalle" class="panel-detalle">
+      <button id="btn-cerrar-detalle" class="btn-cerrar-detalle" onclick="cerrarDetalle()">&times;</button>
+      <div id="detalle-contenido" class="detalle-contenido">
+        <p class="detalle-placeholder">Selecciona un hallazgo para ver el detalle</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PANTALLA DE HISTORIAL ===== -->
+  <section id="pantalla-historial" class="pantalla">
+    <div class="historial-container">
+      <h2>Procesamientos anteriores</h2>
+      <div id="lista-historial"></div>
+      <button class="btn-secundario" onclick="volverInicio()">Volver</button>
+    </div>
+  </section>
+
+  <script src="/app.js"></script>
+</body>
+</html>
