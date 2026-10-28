@@ -1087,7 +1087,7 @@ def _resultados_por_pano(r: ReporteInforme) -> None:
         "🟦 U seguro · 🟩 = descripción idéntica · 🟪 ~ confianza alta · "
         "🟨 ? confianza baja (revisar) · "
         "🟥 ! sin match — detalles en la guía de lectura. "
-        "Haz clic en una fila para ver el detalle y marcar tu feedback."
+        "Marca la casilla a la izquierda de una fila para ver el detalle y dejar tu feedback."
     )
 
     # Las filas transversales tienen su propia sección: no entran ni a los
