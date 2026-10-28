@@ -1,6 +1,7 @@
 > **Versión pública.** Este documento viene del repositorio de trabajo. Las carpetas que cita
 > `docs/`, `tasks/` y `mediciones/`, los informes reales y las planillas no se publican, y los
-> nombres de subestaciones, empresas y personas fueron reemplazados por alias.
+> nombres de subestaciones, empresas y personas fueron reemplazados por alias. La interfaz es
+> Streamlit: el dashboard legacy que se menciona (`frontend/` + `server.py`) no se incluye.
 
 # Comparador de hallazgos PDF vs Excel — documento de diseño
 

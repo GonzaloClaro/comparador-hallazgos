@@ -30,7 +30,6 @@ from typing import Any
 import fitz
 import numpy as np
 import pytest
-from fastapi.testclient import TestClient
 from numpy.typing import NDArray
 from openpyxl import Workbook
 from pydantic import BaseModel
@@ -748,19 +747,9 @@ class TestPipelinePuntaAPunta:
         assert entorno["llm"].llamadas == []
         assert entorno["contador"].llamadas == 0
 
-    def test_reporte_se_sirve_y_exporta(self, entorno: dict[str, Any]) -> None:
-        """El run nuevo se lee desde el server legacy y se exporta."""
-        from comparador.server import app
-
+    def test_reporte_se_exporta(self, entorno: dict[str, Any]) -> None:
+        """El run nuevo se exporta."""
         reporte, run_dir, _ = _correr(entorno)
-        cliente = TestClient(app)
-        for ruta in ("reporte", "export/xlsx", "export/csv", "export/feedback"):
-            respuesta = cliente.get(f"/api/runs/{run_dir.name}/{ruta}")
-            assert respuesta.status_code == 200, ruta
-        listado = cliente.get("/api/runs")
-        assert listado.status_code == 200
-        assert run_dir.name in listado.text
-
         csv = exportar_csv(reporte)
         assert "Equivalencias de redacción" in csv
         assert "mismo incumplimiento de sincronización" in csv

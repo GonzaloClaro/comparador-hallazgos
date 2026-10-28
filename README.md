@@ -96,7 +96,6 @@ mucho menos.
 |---|---|
 | `src/comparador/` | El pipeline (una etapa por archivo: E0 checklist, E1 paños y relés, E2 Excel, E3 hallazgos, E4 comparación, E5 reporte), el catálogo de pistas por auditora y los criterios del checklist |
 | `streamlit_app.py` | La interfaz |
-| `frontend/` | Interfaz alternativa (legacy, FastAPI + HTML) |
 | `samples/` | Generadores de informes sintéticos |
 | `tests/` | Tests unitarios, de integración e interfaz, todos sin API |
 

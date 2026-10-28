@@ -75,7 +75,7 @@ ItemGrupo = tuple[int, MatchResult]
 st.set_page_config(page_title="Comparador de Hallazgos", page_icon="⚡", layout="wide")
 
 # Estilos: paleta y componentes del dashboard original (header teal, tiles de
-# color semántico). Streamlit no usa frontend/styles.css, así que se replica.
+# color semántico).
 st.markdown("""
 <style>
   .header-cen { background:#1B3A4B; color:#fff; padding:20px 28px; border-radius:8px;
