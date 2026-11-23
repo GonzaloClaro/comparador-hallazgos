@@ -57,7 +57,7 @@ PALABRA_PRUEBA = "prueba"
 
 class ClaveOpenAIError(RuntimeError):
     """La clave de OpenAI no responde (sin fondos, revocada o inválida): se
-    detecta antes de la primera llamada pagada a Claude."""
+    detecta antes de la primera llamada pagada al modelo principal."""
 
 
 def _causa(exc: Exception) -> str:
@@ -86,7 +86,7 @@ def probar_clave_openai(calcular: CalcularEmbeddings | None = None) -> dict[str,
     Los embeddings de E4 son siempre de OpenAI: una clave sin fondos o revocada
     fallaría en E4 después de pagar el checklist, E1 y E3. Quien la llama
     (pipeline, evaluar_lote, reproducir_e4) lo hace antes de la primera llamada
-    pagada a Claude y le pasa la función que usará E4
+    pagada al modelo principal y le pasa la función que usará E4
     (``etapa4_matching.calcular_embeddings``, la que reemplazan los tests); sin
     ella, ``calcular_embeddings`` de este módulo.
 
@@ -100,11 +100,12 @@ def probar_clave_openai(calcular: CalcularEmbeddings | None = None) -> dict[str,
         matriz, uso = calcular([PALABRA_PRUEBA])
     except Exception as exc:
         raise ClaveOpenAIError(
-            "La clave de OpenAI no responde: ¿sin fondos o revocada? No se llamó a Claude "
-            f"(no se gastó nada en Claude). Causa: {_causa(exc)}") from exc
+            "La clave de OpenAI no responde: ¿sin fondos o revocada? No se llamó al modelo "
+            f"principal (no se gastó nada en él). Causa: {_causa(exc)}") from exc
     if matriz.shape[0] != 1 or not matriz.size:
         raise ClaveOpenAIError(
-            "La clave de OpenAI no responde: ¿sin fondos o revocada? No se llamó a Claude. "
+            "La clave de OpenAI no responde: ¿sin fondos o revocada? No se llamó al modelo "
+            "principal. "
             f"Causa: la respuesta llegó sin el vector (forma {matriz.shape}).")
     uso = uso or {}
     return {

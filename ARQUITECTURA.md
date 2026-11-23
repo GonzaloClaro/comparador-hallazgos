@@ -397,12 +397,12 @@ volver a pagar el checklist, E1 ni E3.
 | `etapa3_extraer_hallazgos.py` | Etapa | Hallazgos del PDF por paño, con reparación y un reintento | pipeline |
 | `etapa4_matching.py` | Etapa | Emparejar y comparar (4a a 4f) | pipeline, `reproducir_e4` |
 | `etapa5_consolidar.py` | Etapa | Totales, orden y `ReporteInforme` | pipeline, `reproducir_e4` |
-| `llm/client.py` | Servicio | Única puerta a los modelos: elige proveedor por el nombre (`claude-*` → Anthropic, resto → OpenAI), manda el PDF (en línea o por Files API), pide salida estructurada, reintenta errores de red, cuenta tokens | E0, E1, E3, E4, troceo, embeddings |
+| `llm/client.py` | Servicio | Única puerta a los modelos: elige proveedor por el nombre (`claude-*` → Anthropic, resto → OpenAI, el default: `gpt-6.2-sol` por la API Responses), manda el PDF (en línea o por Files API), pide salida estructurada, reintenta errores de red, cuenta tokens | E0, E1, E3, E4, troceo, embeddings |
 | `llm/embeddings.py` | Servicio | Embeddings de OpenAI, similitud coseno, los 5 más parecidos y la prueba de la clave | E4, pipeline |
 | `llm/prompts.py` | Servicio | Todas las instrucciones que recibe el modelo, en un solo lugar | E0, E1, E3, E4 |
 | `citas.py` | Servicio | Comprueba que una cita exista en su página del PDF (sin IA) | E0, E3, visor, pantalla |
 | `troceo.py` | Servicio | Parte en tramos los informes que no caben en el contexto del modelo | E0, E1 |
-| `convertir.py` | Servicio | Word → PDF; con un modelo que no es Claude, rasteriza el PDF que pesa demasiado y rechaza el de más de 100 páginas (nunca lo recorta) | pantalla, `llm/client.py` |
+| `convertir.py` | Servicio | Word → PDF; con un modelo que no es de contexto largo (Claude de 1M o GPT-6.x), rasteriza el PDF que pesa demasiado y rechaza el de más de 100 páginas (nunca lo recorta) | pantalla, `llm/client.py` |
 | `catalogo.py` | Servicio | Carga las pistas de la auditora elegida; falla si no existe | E3, prompts, pantalla |
 | `schemas.py` | Base | Los tipos de datos (Pydantic): `Hallazgo`, `MatchResult`, `ReporteInforme`, `Calificacion`, `EmpresaAuditora`… | casi todos |
 | `config.py` | Base | Lee `.env`: claves, modelo, umbrales e interruptores (`settings`) | casi todos |

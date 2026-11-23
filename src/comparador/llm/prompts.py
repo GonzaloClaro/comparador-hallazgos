@@ -227,8 +227,20 @@ REGLAS DE EXTRACCIÓN:
 
 
 def user_extraer_hallazgos(pano: str) -> str:
+    # El recorte son las páginas de la TABLA que ubicó E1: el título de la
+    # sección puede quedar en la página anterior, fuera del recorte. Sin este
+    # aviso, GPT-6.2 (Sol y Astra) devolvía 0 hallazgos en una tabla sin título
+    # a la vista (C3 del sintético, prueba de humo del 2026-11-23).
     return f"""\
 Extrae todos los hallazgos del paño "{pano}" en este PDF.
+
+El PDF adjunto es un recorte con las páginas donde la etapa anterior ubicó la \
+tabla resumen del paño "{pano}". Para saber qué tabla es la de este paño:
+- Si el título del paño "{pano}" aparece en el recorte, su tabla es la que sigue a \
+ese título; lo que esté antes es de otro paño.
+- Si no aparece, el título quedó en una página anterior, fuera del recorte: la \
+tabla resumen con que empieza el recorte es la del paño "{pano}".
+- Una tabla bajo el título de otro paño nunca es de este paño.
 
 Solo extrae hallazgos reales (cosas que no cumplen o requieren acción). \
 Filtra todo lo que indique cumplimiento o ausencia de hallazgo.

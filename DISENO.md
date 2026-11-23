@@ -5,6 +5,7 @@
 
 # Comparador de hallazgos PDF vs Excel — documento de diseño
 
+> Versión: 0.33 (2026-11-23, sin cambios de schema, decisión del usuario: OpenAI pasa a ser el proveedor por defecto, `gpt-6.2-sol` con razonamiento `medium`, porque desde el servidor del CEN la conexión con Anthropic falla; Anthropic sigue funcionando con `MODELO_EXTRACCION=claude-*`. OpenAI va por la API Responses, con el PDF inline o por Files API, y los GPT-6.x cuentan como modelos de contexto largo: se trocean como Claude de 1M, con su propio contador de tokens y cada tramo bajo 45 MB (§5 «Documentos largos», §11 punto 7, §12). La calidad con Sol no se midió: solo pruebas de humo. La primera dejó ver que el recorte de la Etapa 3, con las páginas de la tabla, puede dejar fuera el título del paño, y GPT-6.2 no extraía esa tabla: el prompt de usuario de E3 avisa ahora que el título puede haber quedado en la página anterior y cómo distinguir la tabla del paño de la de otro, sin cambiar qué páginas se envían)
 > Versión: 0.32 (2026-10-27, sin cambios de schema, decisión del usuario: el título del paño colapsado desglosa su total por estado con los íconos de cada uno, «Paño C3 · 7 hallazgos = ✅ 4 coinciden + 🟡 1 difiere + 🔴 1 falta en Excel + 🟠 1 falta en el PDF» (§9.1))
 > Versión: 0.31 (2026-10-27, schema 0.12.0 compatible, decisión del usuario: `Diferencia.motivo` (`MotivoDiferencia`), por qué E4 marcó cada campo, para que la columna Comentario de Streamlit lo muestre sin interpretar el detalle (invariante 24) y la guía de lectura explique cada rótulo (§4, §9.1))
 > Versión: 0.30 (cierre del paso 6, 2026-10-27, sin cambios de schema, decisiones del usuario: (1) 4f, las copias del mismo origen de un par desdoblado por paño se igualan del lado seguro (M34, `UNIFICAR_COPIAS`, encendido por defecto; §5 4f, invariante 19f); (2) `JUEZ_JUSTIFICA_PRIMERO` (M32), el juez de emparejamiento justifica antes de elegir: medido con Opus, no cambió ninguna elección y queda apagado (§5 4b); (3) `a_perdidos` cuenta cada error una vez (§10); (4) `comparador.sensibilidad_checklist`, la parte del checklist de M43 (§10))
@@ -307,7 +308,7 @@ class ReporteInforme(BaseModel):
     fecha_procesamiento: datetime
 
     # Configuración del run
-    modelo_extraccion: str               # default actual: "claude-opus-5-5" (cliente dual: "claude-*" → Anthropic, resto → OpenAI)
+    modelo_extraccion: str               # default actual: "gpt-6.2-sol" desde 2026-11-23, antes "claude-opus-5-5" (cliente dual: "claude-*" → Anthropic, resto → OpenAI)
     modelo_embeddings: str               # "text-embedding-3-large"
 
     # Resultados
@@ -375,9 +376,12 @@ Los informes reales van de 55 a 456 páginas (Beta: 456 págs ≈ 1.04M tokens;
 Alfa: 314 págs ≈ 674k). El PDF sigue pasando **nativo** al modelo
 (invariante 7); lo que cambia es cómo llega:
 
-1. **Límites por proveedor** (`convertir.adecuar_pdf_para_llm`): con modelos
-   Claude de 1M de contexto el PDF pasa sin tocar hasta 600 páginas (límite de
-   la API por request). Con otros proveedores (y Haiku 4) los límites son 100
+1. **Límites por proveedor** (`convertir.adecuar_pdf_para_llm`): con los
+   modelos de contexto largo (`convertir.es_contexto_largo`) el PDF pasa sin
+   tocar: Claude de 1M hasta 600 páginas por request (límite de la API) y, desde
+   el 2026-11-23, GPT-6.x de OpenAI (1,05M de contexto, 922k de entrada, PDF de
+   hasta 50 MB por request, sin tope de páginas documentado). Con otros modelos
+   (`gpt-5*`, Haiku 4) los límites son 100
    páginas y 25 MB: sobre 100 páginas el informe **falla**
    (`PdfExcedeLimitesError`) antes de llamar al modelo; si solo excede el
    tamaño se rasterizan todas sus páginas a 110 dpi y, si aun así excede,
@@ -388,18 +392,25 @@ Alfa: 314 págs ≈ 674k). El PDF sigue pasando **nativo** al modelo
    (`MODELO_EXTRACCION_FALLBACK`) no es Claude de 1M, el cliente comprueba el
    PDF de cada llamada antes de pasarle al respaldo y, si no le cabe, falla
    con el mismo error (`convertir.exceso_de_limites`).
-2. **Files API por tamaño** (`llm/client._fuente_pdf`): sobre ~24 MB en base64
-   el request superaría el tope de 32 MB; el PDF se sube con Files API, se
-   referencia por `file_id` y se borra al terminar la llamada. `pdf_via` queda
-   en la metadata de cada llamada.
+2. **Files API por tamaño** (`llm/client._fuente_pdf` en Anthropic,
+   `_archivo_pdf_openai` en OpenAI): sobre ~24 MB en base64 el request
+   superaría el tope de 32 MB de Anthropic; el PDF se sube con Files API
+   (en OpenAI con `purpose="user_data"`), se referencia por `file_id` y se
+   borra al terminar la llamada. Se usa el mismo umbral en los dos proveedores.
+   `pdf_via` queda en la metadata de cada llamada.
 3. **Troceo solo si no cabe** (`troceo.planificar_tramos`): antes de E0 y E1
    se cuentan los tokens con `count_tokens` (gratis). `count_tokens` **no
    acepta archivos de Files API**: un PDF grande se cuenta por mitades inline y
    se suman los conteos (sobreestima unos miles de tokens, dirección segura).
-   Si supera `UMBRAL_TOKENS_TROCEO` (900k) o 600 páginas (sobre 600 ni se cuenta
-   el total), se parte en n = ⌈tokens / `TOKENS_POR_TRAMO`⌉ tramos de páginas
+   Con OpenAI se cuenta con `responses.input_tokens.count`, con el mismo
+   `input`, `instructions` y `reasoning` que la llamada; un PDF grande, igual
+   por mitades inline.
+   Si supera `UMBRAL_TOKENS_TROCEO` (900k), 600 páginas en Claude (sobre 600 ni
+   se cuenta el total) o 45 MB en OpenAI (`MAX_BYTES_TRAMO_OPENAI`, margen bajo
+   los 50 MB por request), se parte en n = ⌈tokens / `TOKENS_POR_TRAMO`⌉ tramos de páginas
    consecutivas (≈550k cada uno, mínimo 2) y cada tramo se verifica bajo el
-   umbral de 900k; si alguno lo excede, se agrega un tramo y se re-corta.
+   umbral de 900k (y, en OpenAI, bajo 45 MB); si alguno lo excede, se agrega un
+   tramo y se re-corta.
    Como `count_tokens` no pasa por el router, el troceo replica su política de
    fallback: ante 401/403/404 se planifica para `MODELO_EXTRACCION_FALLBACK`.
    - **Checklist (E0):** se evalúa cada tramo con el aviso "ves las páginas X-Y
@@ -2273,7 +2284,7 @@ Decisiones que el diseño original dejó para después de tener el primer protot
 
 6. **Re-run incremental** (una versión nueva del Excel para un PDF ya procesado: ¿se reusa la extracción del PDF?). **Sigue diferido**, sin PD ni M en `tasks/todo.md`. `reproducir_e4` repite E4 y E5 sobre los hallazgos guardados de un run para medir un cambio de E4, pero no lee un Excel nuevo.
 
-7. **Benchmark de modelos. Cerrado** (decisión del usuario, 2026-10-24). La comparación se hizo entre modelos Claude (Haiku, Sonnet y Opus 5.5 en las rondas B0-B2, `docs/04_metricas.md`) y fijó el modelo por defecto (`claude-opus-5-5`, ver CLAUDE.md, Parte 4); no se compara con modelos de OpenAI. **Se reabre si** hay que cambiar de proveedor por costo o por contrato. El cliente dual sigue aceptando modelos de OpenAI (§12) y los embeddings son de OpenAI.
+7. **Benchmark de modelos. Cerrado** (decisión del usuario, 2026-10-24). La comparación se hizo entre modelos Claude (Haiku, Sonnet y Opus 5.5 en las rondas B0-B2, `docs/04_metricas.md`) y fijó el modelo por defecto de entonces (`claude-opus-5-5`); no se comparó con modelos de OpenAI. El 2026-11-23 el usuario cambió el default a `gpt-6.2-sol` por la red del servidor del CEN (no llega a Anthropic), **sin medir su calidad**: solo pruebas de humo. Medirlo con el evaluador (`evaluar_lote --modelos gpt-6.2-sol`) queda pendiente si se quiere saber cuánto difiere de Opus. Los embeddings son de OpenAI.
 
 8. **Confirmar el enum completo de Calificación. Cerrado con los datos.** La hoja Definiciones de la plantilla vigente define exactamente Crítico, Relevante y Menor; la plantilla anterior (Gamma) ofrece solo Relevante y Menor, y el formato antiguo (Epsilon) no trae calificación (`docs/01_problema.md` §2.2). Un valor distinto falla ruidosamente (invariante 3), así que una plantilla nueva no pasaría en silencio.
 
@@ -2289,7 +2300,7 @@ Al día con CLAUDE.md, Parte 4 (2026-10-24).
 - **PDF handling:** el PDF pasa nativo al LLM (multimodal, nunca extraído a markdown; §5 "Documentos largos"); pypdf para los recortes de páginas; pymupdf (fitz) para la capa de texto: verificación de citas (`comparador.citas`) y visor de página.
 - **DOCX:** conversión a PDF con LibreOffice si está instalado; si no, mammoth + xhtml2pdf (`comparador.convertir`).
 - **Excel handling:** pandas + openpyxl (lectura y exportación con formato).
-- **LLM:** cliente dual (`llm/client.py`): `claude-*` → Anthropic, el resto → OpenAI, con structured outputs en los dos. Modelo por defecto `claude-opus-5-5` (decisión del usuario del 2026-10-17; Sonnet 5.5 como alternativa más barata). Thinking por modelo en §5.
+- **LLM:** cliente dual (`llm/client.py`): `claude-*` → Anthropic, el resto → OpenAI, con structured outputs en los dos. Modelo por defecto `gpt-6.2-sol` con `reasoning.effort=medium` (decisión del usuario del 2026-11-23; antes `claude-opus-5-5`, desde el 2026-10-17). OpenAI por la API Responses (`responses.parse` con `text_format`; PDF como `input_file`, inline o por Files API; conteo con `responses.input_tokens.count`); Anthropic por la Messages API con streaming. Thinking por modelo en §5.
 - **Embeddings:** OpenAI text-embedding-3-large, siempre de OpenAI: exige `OPENAI_API_KEY` aunque la extracción use Claude, y la clave se prueba antes de gastar (§5). Los vectores de E4 se guardan con numpy (`etapa4_embeddings.npz`).
 - **Concurrencia:** asyncio. El checklist y E1 corren en paralelo; E3 extrae hasta 3 paños a la vez (`asyncio.Semaphore(3)`, cada llamada en un hilo del executor); E4 consulta al juez en serie (paralelizarlo es M60).
 - **Servidor HTTP (legacy):** FastAPI + uvicorn (`server.py`), sirve la API y el dashboard vanilla.

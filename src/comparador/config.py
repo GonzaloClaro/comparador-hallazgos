@@ -20,17 +20,23 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(default="", repr=False)
     anthropic_api_key: str = Field(default="", repr=False)
 
-    modelo_extraccion: str = "claude-opus-5-5"
+    # Por defecto OpenAI (decisión del usuario 2026-11-23: la red de un servidor
+    # del CEN no llegaba a Anthropic). claude-* va a Anthropic (antes el default
+    # era claude-opus-5-5). Un .env existente manda sobre este valor.
+    modelo_extraccion: str = "gpt-6.2-sol"
     modelo_extraccion_fallback: str = ""
     modelo_juez_matching: str = ""
     modelo_embeddings: str = "text-embedding-3-large"
 
-    # Effort de los modelos Claude (output_config.effort). Vacío = el default
-    # del modelo. Un valor fuera de la lista falla al arrancar, no en la API.
+    # Esfuerzo de razonamiento: en Claude, output_config.effort (vacío = el
+    # default del modelo); en OpenAI, reasoning.effort (vacío = "medium",
+    # client.EFFORT_OPENAI_POR_DEFECTO). Un valor fuera de la lista falla al
+    # arrancar, no en la API.
     effort_llm: Literal["", "low", "medium", "high", "xhigh", "max"] = ""
 
-    # Sobre este conteo (count_tokens) el checklist y la Etapa 1 trocean el
-    # PDF: con 1M de contexto, el resto se reserva al prompt y a la respuesta.
+    # Sobre este conteo (contador de tokens del proveedor) el checklist y la
+    # Etapa 1 trocean el PDF: con ~1M de contexto (Claude de 1M, GPT-6.x: 922k
+    # de entrada), el resto se reserva al prompt y a la respuesta.
     umbral_tokens_troceo: int = Field(default=900_000, ge=100_000)
     tokens_por_tramo: int = Field(default=550_000, ge=50_000)
 

@@ -6,10 +6,11 @@ Dos responsabilidades:
    binarios ni apps externas — verificado que preserva las Tablas Resumen
    de hallazgos legibles (2026-07-07). Las imágenes que PIL no sabe abrir
    (EMF/WMF de Word) se reemplazan por un aviso visible en el PDF.
-2. Adecuar PDFs a los límites del proveedor. Con Claude (modelos de 1M de
-   contexto) no hace falta: los PDFs grandes van por Files API y los que no
-   caben en contexto se trocean por tokens (ver etapa0/etapa1). Con otros
-   modelos (OpenAI, Haiku 4.5) un informe de más de 100 páginas falla con un
+2. Adecuar PDFs a los límites del proveedor. Con los modelos de contexto largo
+   (Claude de 1M y GPT-6.x, `es_contexto_largo`) no hace falta: los PDFs grandes
+   van por Files API y los que no caben en contexto se trocean por tokens (ver
+   troceo.py y etapa0/etapa1). Con otros modelos (p. ej. gpt-5, Haiku 4.5) un
+   informe de más de 100 páginas falla con un
    error claro (decisión del usuario 2026-10-18: recortarlo daba «no cumple» y
    faltas falsas por páginas que el modelo nunca vio); uno que solo excede el
    tamaño se rasteriza completo, sin recortar.
@@ -116,12 +117,18 @@ def _convertir_docx_python(
     return ruta_pdf, info
 
 
-def _usa_limites_claude(modelo: str) -> bool:
-    """Modelos Claude de 1M de contexto: 600 páginas por request y Files API.
+def es_contexto_largo(modelo: str) -> bool:
+    """Modelos de ~1M de contexto, que reciben el informe entero (o por tramos,
+    troceo.py) sin los topes de MAX_PAGINAS_OTROS / MAX_BYTES_OTROS:
 
-    Haiku 4.5 es el único Claude vigente de 200k (100 páginas).
+    - Claude de 1M: 600 páginas por request y Files API. Haiku 4.5 es el único
+      Claude vigente de 200k (100 páginas).
+    - GPT-6.x de OpenAI (1,05M de contexto, 922k de entrada; PDF de hasta 50 MB
+      por archivo, sin tope de páginas documentado): decisión del usuario
+      2026-11-23, OpenAI como proveedor por defecto.
     """
-    return modelo.startswith("claude") and not modelo.startswith("claude-haiku-4")
+    return ((modelo.startswith("claude") and not modelo.startswith("claude-haiku-4"))
+            or modelo.startswith("gpt-6"))
 
 
 def exceso_de_limites(pdf: bytes, modelo: str) -> str | None:
@@ -130,7 +137,7 @@ def exceso_de_limites(pdf: bytes, modelo: str) -> str | None:
     Es para el modelo de respaldo (MODELO_EXTRACCION_FALLBACK), que no pasa
     por adecuar_pdf_para_llm: esa adecuación se hace para MODELO_EXTRACCION.
     """
-    if _usa_limites_claude(modelo):
+    if es_contexto_largo(modelo):
         return None
     paginas = len(PdfReader(io.BytesIO(pdf)).pages)
     if paginas > MAX_PAGINAS_OTROS:
@@ -144,10 +151,11 @@ def exceso_de_limites(pdf: bytes, modelo: str) -> str | None:
 def adecuar_pdf_para_llm(
     ruta_pdf: Path, modelo: str | None = None
 ) -> tuple[Path, dict[str, Any] | None]:
-    """Adecua el PDF a los límites de un modelo que no es Claude de 1M.
+    """Adecua el PDF a los límites de un modelo que no es de contexto largo.
 
-    Con Claude de 1M no se toca: los PDFs grandes van por Files API y los que
-    no caben en contexto se trocean en etapa0/etapa1 (sin perder páginas). Con
+    Con un modelo de contexto largo (Claude de 1M, GPT-6.x) no se toca: los PDFs
+    grandes van por Files API y los que no caben en contexto se trocean en
+    etapa0/etapa1 (sin perder páginas). Con
     otro modelo, más de MAX_PAGINAS_OTROS páginas → PdfExcedeLimitesError (no se
     recorta: el modelo no vería parte del informe); más de MAX_BYTES_OTROS →
     se rasteriza completo y, si aun así excede, PdfExcedeLimitesError.
@@ -159,7 +167,7 @@ def adecuar_pdf_para_llm(
     ser silenciosa para el revisor.
     """
     modelo = modelo or settings.modelo_extraccion
-    if _usa_limites_claude(modelo):
+    if es_contexto_largo(modelo):
         return ruta_pdf, None
 
     paginas = len(PdfReader(ruta_pdf).pages)
@@ -168,8 +176,8 @@ def adecuar_pdf_para_llm(
         raise PdfExcedeLimitesError(
             f"El informe tiene {paginas} páginas y el modelo {modelo} acepta hasta "
             f"{MAX_PAGINAS_OTROS} por lectura. No se recorta (el modelo no vería parte del "
-            "informe): usa un modelo Claude de 1M de contexto (por ejemplo claude-opus-5-5), "
-            "que lee hasta 600 páginas y trocea los informes más largos."
+            "informe): usa un modelo de contexto largo (por ejemplo gpt-6.2-sol o "
+            "claude-opus-5-5), que trocea los informes que no caben en una lectura."
         )
     if tamano <= MAX_BYTES_OTROS:
         return ruta_pdf, None
@@ -196,7 +204,7 @@ def adecuar_pdf_para_llm(
             f"El informe pesa {tamano / 1e6:.1f} MB y rasterizado sigue en "
             f"{enviados / 1e6:.1f} MB: "
             f"el modelo {modelo} acepta hasta {MAX_BYTES_OTROS / 1e6:.0f} MB por lectura. Usa un "
-            "modelo Claude de 1M de contexto (por ejemplo claude-opus-5-5)."
+            "modelo de contexto largo (por ejemplo gpt-6.2-sol o claude-opus-5-5)."
         )
     info = {
         "paginas_originales": paginas,

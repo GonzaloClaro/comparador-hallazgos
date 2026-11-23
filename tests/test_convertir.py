@@ -102,6 +102,15 @@ class TestAdecuarPorProveedor:
         ruta = _pdf(tmp_path, 456)
         assert adecuar_pdf_para_llm(ruta, "claude-sonnet-5-5") == (ruta, None)
 
+    def test_gpt_6_no_recorta_informes_largos(self, tmp_path: Path):
+        # OpenAI por defecto (2026-11-23): GPT-6.x es de contexto largo; los informes
+        # que no caben se trocean (troceo.py), sin tope de 100 páginas ni de 25 MB.
+        ruta = _pdf(tmp_path, 456)
+        assert adecuar_pdf_para_llm(ruta, "gpt-6.2-sol") == (ruta, None)
+        assert convertir.exceso_de_limites(ruta.read_bytes(), "gpt-6.2-sol") is None
+        assert convertir.es_contexto_largo("gpt-6.2-astra")
+        assert not convertir.es_contexto_largo("gpt-5")
+
     def test_otros_proveedores_fallan_sobre_100_paginas(self, tmp_path: Path):
         # Decisión del usuario 2026-10-18: no se recorta (el modelo no vería parte del informe).
         ruta = _pdf(tmp_path, 120)

@@ -1,10 +1,12 @@
 """Troceo de PDFs que no caben en el contexto del modelo.
 
-Con los modelos Claude de 1M de contexto, un informe entra entero hasta ~900k
-tokens (umbral configurable) y 600 páginas. Los informes más largos (Beta:
-456 págs ≈ 1.04M tokens) se parten en tramos de páginas consecutivas, cada uno
-verificado con count_tokens. Si el modelo no es Claude no se trocea: ahí rigen
-los límites de convertir.adecuar_pdf_para_llm.
+Con los modelos de contexto largo (convertir.es_contexto_largo: Claude de 1M y
+GPT-6.x), un informe entra entero hasta ~900k tokens (umbral configurable). Los
+informes más largos (Beta: 456 págs ≈ 1.04M tokens con Claude) se parten en
+tramos de páginas consecutivas, cada uno verificado con el contador de tokens
+del proveedor (client.contar_tokens_pdf). Cada proveedor suma su propio tope:
+Claude, 600 páginas por request; OpenAI, 50 MB por archivo. Con otros modelos
+no se trocea: ahí rigen los límites de convertir.adecuar_pdf_para_llm.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ from typing import Any
 from pypdf import PdfReader, PdfWriter
 
 from comparador.config import settings
+from comparador.convertir import es_contexto_largo
 from comparador.llm.client import (
     ERRORES_ACCESO_MODELO,
     contar_tokens_pdf,
@@ -27,8 +30,26 @@ from comparador.llm.client import (
     pdf_cabe_inline,
 )
 
-MAX_PAGINAS_POR_REQUEST = 600
+MAX_PAGINAS_POR_REQUEST = 600  # Claude
+# OpenAI acepta PDF de hasta 50 MB por archivo y por request: cada tramo queda
+# bajo este tamaño (en bytes del PDF), con margen.
+MAX_BYTES_TRAMO_OPENAI = 45_000_000
 _MAX_ITERACIONES = 4
+
+
+def _max_paginas(modelo: str) -> int | None:
+    """Páginas por request del proveedor (None: sin tope documentado)."""
+    return MAX_PAGINAS_POR_REQUEST if modelo.startswith("claude") else None
+
+
+def _max_bytes(modelo: str) -> int | None:
+    """Bytes de PDF por request del proveedor (None: sin tope que trocear;
+    Claude manda los PDFs grandes por su Files API)."""
+    return None if modelo.startswith("claude") else MAX_BYTES_TRAMO_OPENAI
+
+
+def _bytes_pdf(b64: str) -> int:
+    return len(b64) * 3 // 4
 
 
 @dataclass(frozen=True)
@@ -59,7 +80,7 @@ def _contar_rango(
 ) -> int:
     """Tokens de las páginas inicio..fin con el prompt.
 
-    count_tokens solo acepta PDFs inline (no Files API): si el rango no cabe,
+    El contador solo recibe PDFs inline (no Files API): si el rango no cabe,
     se bisecta y se suman las mitades. La suma cuenta el prompt una vez por
     mitad — sobreestima unos miles de tokens, en la dirección segura (trocear
     de más nunca hace perder páginas).
@@ -85,11 +106,12 @@ def planificar_tramos(
 ) -> list[Tramo]:
     """Un solo tramo si el PDF cabe; si no, tramos de páginas que caben.
 
-    El corte es proporcional por páginas y cada tramo se verifica con
-    count_tokens: si alguno se pasa del umbral, se aumenta la cantidad de
-    tramos y se re-corta (las páginas densas no se reparten parejo).
+    El corte es proporcional por páginas y cada tramo se verifica con el
+    contador de tokens del proveedor: si alguno se pasa del umbral (o del tope
+    de bytes del proveedor), se aumenta la cantidad de tramos y se re-corta (las
+    páginas densas no se reparten parejo).
 
-    count_tokens va directo al SDK (no por el router), así que aplica acá la
+    El contador va directo al SDK (no por el router), así que aplica acá la
     misma política de fallback de modelo que llamar_llm_estructurado: ante un
     error de acceso se planifica para MODELO_EXTRACCION_FALLBACK.
     """
@@ -108,20 +130,23 @@ def _planificar(ruta_pdf: Path, modelo: str, system_prompt: str, user_prompt: st
     reader = PdfReader(ruta_pdf)
     total = len(reader.pages)
     completo = pdf_a_base64(ruta_pdf)
-    if not modelo.startswith("claude"):
-        # Otros proveedores: rigen los límites de convertir.adecuar_pdf_para_llm.
+    if not es_contexto_largo(modelo):
+        # Otros modelos: rigen los límites de convertir.adecuar_pdf_para_llm.
         return [Tramo(1, total, total, completo, None)]
     contexto = {"modelo": modelo, "system_prompt": system_prompt, "user_prompt": user_prompt}
+    max_paginas, max_bytes = _max_paginas(modelo), _max_bytes(modelo)
+    cabe_en_bytes = max_bytes is None or _bytes_pdf(completo) <= max_bytes
     tokens: int | None = None
-    if total <= MAX_PAGINAS_POR_REQUEST:
-        # Sobre 600 páginas se trocea igual: no tiene sentido contar el total.
+    if max_paginas is None or total <= max_paginas:
+        # Sobre el tope de páginas se trocea igual: no tiene sentido contar el total.
         tokens = _contar_rango(reader, 1, total, completo, **contexto)
-        if tokens <= settings.umbral_tokens_troceo:
+        if tokens <= settings.umbral_tokens_troceo and cabe_en_bytes:
             return [Tramo(1, total, total, completo, tokens)]
 
     n = max(
         math.ceil((tokens or 0) / settings.tokens_por_tramo),
-        math.ceil(total / MAX_PAGINAS_POR_REQUEST),
+        math.ceil(total / max_paginas) if max_paginas else 1,
+        math.ceil(_bytes_pdf(completo) / max_bytes) if max_bytes else 1,
         2,
     )
     for _ in range(_MAX_ITERACIONES):
@@ -132,12 +157,16 @@ def _planificar(ruta_pdf: Path, modelo: str, system_prompt: str, user_prompt: st
             b64 = _recortar_base64(reader, inicio, fin)
             t = _contar_rango(reader, inicio, fin, b64, **contexto)
             tramos.append(Tramo(inicio, fin, total, b64, t))
-        if all((t.tokens or 0) <= settings.umbral_tokens_troceo for t in tramos):
+        if all((t.tokens or 0) <= settings.umbral_tokens_troceo
+               and (max_bytes is None or _bytes_pdf(t.pdf_base64) <= max_bytes)
+               for t in tramos):
             return tramos
         n += 1
     raise RuntimeError(
         f"No se pudo trocear {ruta_pdf.name} ({total} págs, {tokens} tokens) en tramos "
-        f"bajo {settings.umbral_tokens_troceo} tokens tras {_MAX_ITERACIONES} intentos."
+        f"bajo {settings.umbral_tokens_troceo} tokens"
+        + (f" y {max_bytes / 1e6:.0f} MB" if max_bytes else "")
+        + f" tras {_MAX_ITERACIONES} intentos."
     )
 
 

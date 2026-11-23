@@ -64,6 +64,36 @@ class TestPlanificarTramos:
         assert len(tramos) == 2
         assert all(t.pagina_fin - t.pagina_inicio + 1 <= 600 for t in tramos)
 
+    def test_gpt_6_trocea_como_claude(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # OpenAI por defecto (2026-11-23): mismo umbral de tokens que Claude.
+        _tokens_por_pagina(monkeypatch, 2_300)
+        tramos = planificar_tramos(
+            _pdf(tmp_path, 456), modelo="gpt-6.2-sol", system_prompt="s", user_prompt="u")
+        assert [(t.pagina_inicio, t.pagina_fin) for t in tramos] == [(1, 228), (229, 456)]
+        assert all((t.tokens or 0) <= 900_000 for t in tramos)
+
+    def test_gpt_6_sin_tope_de_600_paginas(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # El tope de 600 páginas es de Claude; OpenAI no documenta uno.
+        _tokens_por_pagina(monkeypatch, 500)
+        tramos = planificar_tramos(
+            _pdf(tmp_path, 700), modelo="gpt-6.2-sol", system_prompt="s", user_prompt="u")
+        assert len(tramos) == 1 and tramos[0].es_completo
+
+    def test_gpt_6_parte_por_tamano(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # OpenAI acepta PDF de hasta 50 MB: aunque quepa en tokens, cada tramo
+        # queda bajo MAX_BYTES_TRAMO_OPENAI.
+        _tokens_por_pagina(monkeypatch, 1_000)
+        ruta = _pdf(tmp_path, 40)
+        tope = ruta.stat().st_size * 2 // 3
+        monkeypatch.setattr(troceo, "MAX_BYTES_TRAMO_OPENAI", tope)
+        tramos = planificar_tramos(ruta, modelo="gpt-6.2-sol", system_prompt="s", user_prompt="u")
+        assert len(tramos) >= 2
+        assert tramos[0].pagina_inicio == 1 and tramos[-1].pagina_fin == 40
+        assert all(len(t.pdf_base64) * 3 // 4 <= tope for t in tramos)
+        # Ninguna página se pierde: los tramos son consecutivos.
+        pares = zip(tramos, tramos[1:], strict=False)
+        assert all(b.pagina_inicio == a.pagina_fin + 1 for a, b in pares)
+
     def test_modelo_no_claude_no_trocea(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         conteos = _tokens_por_pagina(monkeypatch, 2_300)
         tramos = planificar_tramos(

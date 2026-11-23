@@ -38,11 +38,12 @@ RAIZ = Path(__file__).resolve().parents[1]
 
 # Con "/" al final, carpetas: git tiene que ignorar la carpeta entera.
 ALMACENES_PRIVADOS = ("runs/", "feedback/", "mediciones/", "informes_reales/",
-                      "checklist_general/", ".env")
+                      "checklist_general/", "presentacion/", ".env")
 EJEMPLOS_PRIVADOS = ("feedback/20261018_x/feedback.json", "feedback/.feedback.lock",
                      "runs/20261018_x/input.pdf", "mediciones/gt/comparador/x.json",
                      "mediciones/fichas_informes.yaml", "mediciones/adjudicacion_checklist/",
-                     "informes_reales/x/informe.pdf", "x.npz", "evaluacion_B3.json",
+                     "informes_reales/x/informe.pdf", "presentacion/capturas/x.png", "x.npz",
+                     "evaluacion_B3.json",
                      ".env.local")
 RAICES_VERSIONADAS = {"src", "docs", "frontend"}
 # Binarios de informe: solo los fixtures sintéticos de tests/ se versionan.

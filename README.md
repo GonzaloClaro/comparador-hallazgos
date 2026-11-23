@@ -23,8 +23,10 @@ conectan, con diagramas, en [`ARQUITECTURA.md`](ARQUITECTURA.md).
 
 - Python 3.11 o superior (uv lo descarga si no está).
 - [uv](https://docs.astral.sh/uv/), el gestor de entornos.
-- Una clave de API de **Anthropic** (lee el informe, el checklist y los jueces) y una de
-  **OpenAI** (mide el parecido entre textos). Se necesitan las dos.
+- Una clave de API de **OpenAI**: con la configuración por defecto (`gpt-6.2-sol`) lee el
+  informe, hace el checklist y los jueces, y mide el parecido entre textos. Una de **Anthropic**
+  solo si se usa un modelo Claude (`MODELO_EXTRACCION=claude-opus-5-5`); la de OpenAI se necesita
+  igual, porque los embeddings son siempre de OpenAI.
 
 ## Instalación en Mac o Linux
 
@@ -33,7 +35,7 @@ git clone https://github.com/GonzaloClaro/comparador-hallazgos.git
 cd comparador-hallazgos
 uv venv --python 3.13
 uv pip install -e ".[dev]"
-cp .env.example .env        # y completar ANTHROPIC_API_KEY, OPENAI_API_KEY y MODELO_EXTRACCION
+cp .env.example .env        # y completar OPENAI_API_KEY (cada parámetro viene explicado)
 uv run streamlit run streamlit_app.py
 ```
 
@@ -58,7 +60,9 @@ copy .env.example .env
 notepad .env
 ```
 
-En `.env`, completar `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` y `MODELO_EXTRACCION=claude-opus-5-5`.
+En `.env`, completar `OPENAI_API_KEY` y dejar `MODELO_EXTRACCION=gpt-6.2-sol` (para usar Claude:
+`MODELO_EXTRACCION=claude-opus-5-5` y además `ANTHROPIC_API_KEY`). Cada parámetro viene explicado
+en el mismo archivo.
 Para abrir la herramienta, doble clic en `run_streamlit.cmd`: encuentra uv, limpia las variables
 de proxy (en redes corporativas bloquean las APIs) y abre `http://localhost:8501`.
 
@@ -87,9 +91,10 @@ Crea `samples/informe_auditoria_sintetico.pdf` y `samples/hallazgos_sec_sintetic
 Ensaut), que se suben desde la pantalla. `samples/generar_sinteticos_v2.py` crea un segundo par,
 con casos más difíciles.
 
-Cada procesamiento llama a los modelos y tiene costo. Con Claude Opus, un informe real de 55 a 456
-páginas costó entre US$1,9 y US$10,5 y tardó entre 2 y 14 minutos; un sintético, corto, cuesta
-mucho menos.
+Cada procesamiento llama a los modelos y tiene costo. Con `gpt-6.2-sol` (pruebas del 23 de
+noviembre de 2026), un informe real de 55 páginas costó US$0,97 y tardó 2 minutos y medio, uno de
+456 páginas US$9,4 y 13 minutos, y el sintético unos US$0,12 en poco más de un minuto. Las
+mediciones de calidad de la documentación se hicieron con Claude Opus.
 
 ## Estructura
 

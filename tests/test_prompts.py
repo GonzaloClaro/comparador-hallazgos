@@ -5,6 +5,7 @@ from comparador.llm.prompts import (
     SYSTEM_DESCUBRIR_PANOS,
     retroalimentacion_extraccion,
     system_extraer_hallazgos,
+    user_extraer_hallazgos,
 )
 from comparador.schemas import EmpresaAuditora, ReleDescubierto
 
@@ -88,6 +89,25 @@ class TestPromptExtraccionConHints:
 
         assert "el sistema lo desdobla" in prompt
         assert "no lo separes tú" in prompt
+
+
+class TestRecorteSinTitulo:
+    """El recorte de E3 son las páginas de la tabla: el título puede quedar fuera.
+
+    Prueba de humo del 2026-11-23: con solo la página de la tabla (el título
+    «Paño C3» al final de la anterior), Sol y Astra devolvían 0 hallazgos.
+    """
+
+    def test_avisa_que_el_titulo_puede_quedar_fuera(self):
+        prompt = user_extraer_hallazgos("C3")
+        assert 'Extrae todos los hallazgos del paño "C3"' in prompt
+        assert "fuera del recorte" in prompt
+        assert 'la tabla resumen con que empieza el recorte es la del paño "C3"' in prompt
+
+    def test_no_toma_la_tabla_de_otro_paño(self):
+        prompt = user_extraer_hallazgos("C1")
+        assert "lo que esté antes es de otro paño" in prompt
+        assert "Una tabla bajo el título de otro paño nunca es de este paño" in prompt
 
 
 class TestReglasDeRobustezE3:

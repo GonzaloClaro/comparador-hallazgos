@@ -254,11 +254,40 @@ class TestContarTokens:
             )
         assert fake.subidos == [] and fake.llamadas == []
 
-    def test_modelo_no_claude_falla(self):
-        with pytest.raises(ValueError, match="no es un modelo Claude"):
+    def test_modelo_openai_cuenta_con_su_api(self, monkeypatch: pytest.MonkeyPatch):
+        # OpenAI (2026-11-23): responses.input_tokens.count con el mismo input que
+        # la llamada: el PDF inline, el prompt y el esfuerzo de razonamiento.
+        vistos: list[httpx.Request] = []
+
+        def responder(request: httpx.Request) -> httpx.Response:
+            vistos.append(request)
+            return httpx.Response(200, json={"object": "response.input_tokens",
+                                             "input_tokens": 4321})
+
+        monkeypatch.setattr(settings, "openai_api_key", "x")
+        sdk = client._crear_cliente_openai(transport=httpx.MockTransport(responder))
+        monkeypatch.setattr(client, "get_client", lambda: sdk)
+        b64 = base64.b64encode(b"%PDF chico").decode()
+        n = client.contar_tokens_pdf(
+            modelo="gpt-6.2-sol", system_prompt="s", user_prompt="u", pdf_base64=b64)
+        assert n == 4321
+        assert vistos[0].url.path == "/v1/responses/input_tokens"
+        cuerpo = json.loads(vistos[0].content)
+        assert cuerpo["model"] == "gpt-6.2-sol" and cuerpo["instructions"] == "s"
+        archivo, texto = cuerpo["input"][0]["content"]
+        assert archivo["type"] == "input_file"
+        assert archivo["file_data"] == f"data:application/pdf;base64,{b64}"
+        assert texto == {"type": "input_text", "text": "u"}
+        assert cuerpo["reasoning"] == {"effort": "medium"}
+
+    def test_modelo_openai_pdf_grande_se_cuenta_por_partes(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setattr(client, "_MAX_B64_INLINE", 10)
+        b64 = base64.b64encode(b"%PDF muy grande para inline").decode()
+        with pytest.raises(ValueError, match="por partes"):
             client.contar_tokens_pdf(
-                modelo="gpt-5", system_prompt="s", user_prompt="u", pdf_base64="x",
-            )
+                modelo="gpt-6.2-sol", system_prompt="s", user_prompt="u", pdf_base64=b64)
 
 
 def _error_stream(tipo: str, status: int = 200) -> anthropic.APIStatusError:
@@ -637,56 +666,134 @@ class TestLlamadaFallidaLlevaSuMetadata:
         assert not issubclass(client.LlamadaFallidaError, client.ERRORES_ACCESO_MODELO)
 
 
-class TestLlamadaFallidaOpenAI:
-    @staticmethod
-    def _cliente(monkeypatch: pytest.MonkeyPatch, parse: Any) -> None:
-        cliente = type("C", (), {})()
-        cliente.beta = type("B", (), {})()
-        cliente.beta.chat = type("Ch", (), {})()
-        cliente.beta.chat.completions = type("Co", (), {"parse": staticmethod(parse)})()
-        monkeypatch.setattr(client, "get_client", lambda: cliente)
+def _respuesta_openai(
+    *, texto: str | None = '{"ok": true}', status: str = "completed",
+    motivo: str | None = None, rechazo: str | None = None, modelo: str = "gpt-x-2026-01-01",
+) -> dict[str, Any]:
+    """JSON de la API Responses (POST /v1/responses) como lo devuelve OpenAI."""
+    contenido: list[dict[str, Any]] = []
+    if texto is not None:
+        contenido.append({"type": "output_text", "text": texto, "annotations": []})
+    if rechazo is not None:
+        contenido.append({"type": "refusal", "refusal": rechazo})
+    salida = ([{"type": "message", "id": "msg_1", "status": status, "role": "assistant",
+                "content": contenido}] if contenido else [])
+    return {
+        "id": "resp_1", "object": "response", "created_at": 0, "model": modelo,
+        "status": status, "output": salida, "error": None,
+        "incomplete_details": {"reason": motivo} if motivo else None,
+        "instructions": "s", "metadata": {}, "parallel_tool_calls": True,
+        "temperature": None, "tool_choice": "auto", "tools": [], "top_p": None,
+        "usage": {"input_tokens": 70, "input_tokens_details": {"cached_tokens": 20},
+                  "output_tokens": 5, "output_tokens_details": {"reasoning_tokens": 3},
+                  "total_tokens": 75},
+    }
+
+
+class TestOpenAIResponses:
+    """La llamada a OpenAI por la API Responses (2026-11-23, OpenAI por defecto):
+    SDK REAL contra httpx.MockTransport (sin red); se revisa lo que se envía y la
+    metadata que vuelve."""
 
     @staticmethod
-    def _completion(contenido: str | None, refusal: str | None = None) -> Any:
-        from openai.types.chat import ChatCompletion
+    def _sdk(monkeypatch: pytest.MonkeyPatch, cola: list[httpx.Response],
+             vistos: list[httpx.Request]) -> None:
+        def responder(request: httpx.Request) -> httpx.Response:
+            vistos.append(request)
+            return cola.pop(0)
 
-        return ChatCompletion.model_validate({
-            "id": "x", "object": "chat.completion", "created": 0, "model": "gpt-x",
-            "choices": [{"index": 0, "finish_reason": "length", "message": {
-                "role": "assistant", "content": contenido, "refusal": refusal}}],
-            "usage": {"prompt_tokens": 70, "completion_tokens": 5, "total_tokens": 75},
-        })
+        monkeypatch.setattr(settings, "openai_api_key", "x")
+        sdk = client._crear_cliente_openai(transport=httpx.MockTransport(responder))
+        monkeypatch.setattr(client, "get_client", lambda: sdk)
 
-    def _llamar(self) -> Any:
+    @staticmethod
+    def _llamar(pdf_base64: str | None = None) -> Any:
         return client._llamar_openai(modelo="gpt-x", system_prompt="s", user_prompt="u",
-                                     response_model=_Resp, pdf_base64=None, pdf_filename="x.pdf")
+                                     response_model=_Resp, pdf_base64=pdf_base64,
+                                     pdf_filename="informe.pdf")
 
-    def test_respuesta_cortada_por_largo_lleva_sus_tokens(
+    def test_pdf_inline_razonamiento_y_metadata(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        vistos: list[httpx.Request] = []
+        self._sdk(monkeypatch, [httpx.Response(200, json=_respuesta_openai())], vistos)
+        b64 = base64.b64encode(b"%PDF chico").decode()
+        respuesta, meta = self._llamar(b64)
+        assert respuesta.ok
+        cuerpo = json.loads(vistos[0].content)
+        assert vistos[0].url.path == "/v1/responses"
+        assert cuerpo["instructions"] == "s"
+        archivo, texto = cuerpo["input"][0]["content"]
+        assert archivo == {"type": "input_file", "filename": "informe.pdf",
+                           "file_data": f"data:application/pdf;base64,{b64}"}
+        assert texto == {"type": "input_text", "text": "u"}
+        assert cuerpo["reasoning"] == {"effort": "medium"}
+        assert cuerpo["max_output_tokens"] == 64000
+        assert cuerpo["text"]["format"]["type"] == "json_schema"
+        assert meta["modelo_servido"] == "gpt-x-2026-01-01"
+        # Sin la caché en tokens_prompt, como en Anthropic (metricas_lote la cobra aparte).
+        assert (meta["tokens_prompt"], meta["tokens_cache_lectura"]) == (50, 20)
+        assert (meta["tokens_completion"], meta["tokens_total"]) == (5, 55)
+        assert meta["tokens_razonamiento"] == 3
+        assert meta["pdf_via"] == "base64" and meta["stop_reason"] == "completed"
+        assert meta["parametros_thinking"] == {"reasoning": {"effort": "medium"}}
+        assert meta["response_raw"] == {"ok": True}
+        assert meta["schema_sha256"] == client.schema_sha256(_Resp)
+
+    def test_effort_configurado(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        vistos: list[httpx.Request] = []
+        monkeypatch.setattr(settings, "effort_llm", "high")
+        self._sdk(monkeypatch, [httpx.Response(200, json=_respuesta_openai())], vistos)
+        self._llamar()
+        cuerpo = json.loads(vistos[0].content)
+        assert cuerpo["reasoning"] == {"effort": "high"}
+        assert cuerpo["input"][0]["content"] == [{"type": "input_text", "text": "u"}]
+
+    def test_pdf_grande_va_por_files_api_y_se_borra(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        completion = self._completion('{"ok": tr')
+        monkeypatch.setattr(client, "_MAX_B64_INLINE", 10)
+        archivo = {"id": "file-1", "object": "file", "bytes": 30, "created_at": 0,
+                   "filename": "informe.pdf", "purpose": "user_data", "status": "processed"}
+        vistos: list[httpx.Request] = []
+        self._sdk(monkeypatch, [
+            httpx.Response(200, json=archivo),
+            httpx.Response(200, json=_respuesta_openai()),
+            httpx.Response(200, json={"id": "file-1", "object": "file", "deleted": True}),
+        ], vistos)
+        _, meta = self._llamar(base64.b64encode(b"%PDF muy grande para inline").decode())
+        assert [(r.method, r.url.path) for r in vistos] == [
+            ("POST", "/v1/files"), ("POST", "/v1/responses"), ("DELETE", "/v1/files/file-1")]
+        assert b"user_data" in vistos[0].content
+        assert json.loads(vistos[1].content)["input"][0]["content"][0] == {
+            "type": "input_file", "file_id": "file-1"}
+        assert meta["pdf_via"] == "files_api"
 
-        def parse(**kw: Any) -> Any:
-            raise openai.LengthFinishReasonError(completion=completion)
-
-        self._cliente(monkeypatch, parse)
-        with pytest.raises(client.LlamadaFallidaError, match="LengthFinishReasonError") as info:
+    def test_respuesta_cortada_no_valida(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        vistos: list[httpx.Request] = []
+        self._sdk(monkeypatch, [httpx.Response(200, json=_respuesta_openai(
+            texto='{"ok": tr', status="incomplete", motivo="max_output_tokens"))], vistos)
+        with pytest.raises(client.LlamadaFallidaError, match="no valida") as info:
             self._llamar()
         meta = info.value.llm_metadata
-        assert (meta["tokens_prompt"], meta["tokens_completion"]) == (70, 5)
-        assert meta["texto_crudo"] == '{"ok": tr' and meta["llamada_fallida"] is True
-        assert meta["modelo_servido"] == "gpt-x"
+        assert meta["llamada_fallida"] is True and meta["modelo"] == "gpt-x"
 
-    def test_refusal_lleva_sus_tokens(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        completion = self._completion(None, refusal="no puedo")
-        respuesta = type("P", (), {"choices": [type("Ch", (), {"message": type(
-            "M", (), {"parsed": None, "refusal": "no puedo", "content": None})()})()],
-            "usage": completion.usage, "model": "gpt-x"})()
-        self._cliente(monkeypatch, lambda **kw: respuesta)
+    def test_incompleta_sin_texto_lleva_sus_tokens(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        vistos: list[httpx.Request] = []
+        self._sdk(monkeypatch, [httpx.Response(200, json=_respuesta_openai(
+            texto=None, status="incomplete", motivo="content_filter"))], vistos)
+        with pytest.raises(client.LlamadaFallidaError, match="incompleta") as info:
+            self._llamar()
+        meta = info.value.llm_metadata
+        assert meta["stop_reason"] == "content_filter"
+        assert (meta["tokens_prompt"], meta["tokens_total"]) == (50, 55)
+        assert meta["modelo_servido"] == "gpt-x-2026-01-01"
+
+    def test_rechazo_lleva_sus_tokens(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        vistos: list[httpx.Request] = []
+        self._sdk(monkeypatch, [httpx.Response(200, json=_respuesta_openai(
+            texto=None, rechazo="no puedo"))], vistos)
         with pytest.raises(client.LlamadaFallidaError, match="no puedo") as info:
             self._llamar()
-        assert info.value.llm_metadata["tokens_total"] == 75
-        assert info.value.llm_metadata["modelo_servido"] == "gpt-x"
+        assert info.value.llm_metadata["tokens_total"] == 55
 
 
 class TestOpenAIInstrumentado:
@@ -704,16 +811,10 @@ class TestOpenAIInstrumentado:
         return httpx.Response(429, headers={"retry-after-ms": "1"},
                               json={"error": {"message": "x", "type": "rate_limit_error"}})
 
-    def test_completion_registra_modelo_servido_y_429(
+    def test_respuesta_registra_modelo_servido_y_429(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        completion = {
-            "id": "x", "object": "chat.completion", "created": 0, "model": "gpt-x-2026-01-01",
-            "choices": [{"index": 0, "finish_reason": "stop", "message": {
-                "role": "assistant", "content": '{"ok": true}', "refusal": None}}],
-            "usage": {"prompt_tokens": 70, "completion_tokens": 5, "total_tokens": 75},
-        }
-        sdk = self._sdk(monkeypatch, [self._429(), httpx.Response(200, json=completion)])
+        sdk = self._sdk(monkeypatch, [self._429(), httpx.Response(200, json=_respuesta_openai())])
         monkeypatch.setattr(client, "get_client", lambda: sdk)
         respuesta, meta = client._llamar_openai(
             modelo="gpt-x", system_prompt="s", user_prompt="u", response_model=_Resp,

@@ -45,6 +45,8 @@ informes_reales/
 checklist_general/
 # Mediciones de las rondas B0..Bn (runs, respuestas crudas, diagnósticos)
 mediciones/
+# Presentación: capturas reales de la herramienta, su contenido y el .pptx
+presentacion/
 # samples: los DATOS quedan fuera; los generadores (.py) son código y se versionan
 samples/*
 !samples/*.py

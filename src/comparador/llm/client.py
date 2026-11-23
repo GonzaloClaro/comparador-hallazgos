@@ -1,8 +1,10 @@
 """Wrapper de clientes LLM (OpenAI y Anthropic) con PDFs y structured outputs.
 
 El proveedor se decide por el nombre del modelo: "claude-*" va a Anthropic,
-el resto a OpenAI. Los embeddings siempre van a OpenAI (Anthropic no ofrece
-API de embeddings).
+el resto a OpenAI (API Responses). Los embeddings siempre van a OpenAI
+(Anthropic no ofrece API de embeddings). Por defecto el modelo es de OpenAI
+(gpt-6.2-sol, decisión del usuario 2026-11-23: la red de un servidor del CEN no
+llegaba a Anthropic); con MODELO_EXTRACCION=claude-* todo vuelve a Anthropic.
 """
 
 from __future__ import annotations
@@ -196,7 +198,8 @@ def llamar_llm_estructurado(
             raise PdfExcedeLimitesError(
                 f"El modelo {modelo} no está disponible ({type(exc).__name__}) y el modelo de "
                 f"respaldo {fallback} no recibe este PDF: {exceso}. No se recorta: usa como "
-                "respaldo un modelo Claude de 1M de contexto o resuelve el acceso al principal."
+                "respaldo un modelo de contexto largo (gpt-6.x o Claude de 1M) o resuelve el "
+                "acceso al principal."
             ) from exc
         # Vía el router (no directo a un proveedor): el fallback puede ser de
         # cualquier proveedor. La recursión es de profundidad 1 — en la
@@ -286,16 +289,25 @@ def pdf_cabe_inline(pdf_base64: str) -> bool:
 
 
 def contar_tokens_pdf(*, modelo: str, system_prompt: str, user_prompt: str, pdf_base64: str) -> int:
-    """Tokens de input de la request (count_tokens: gratis, sin generar).
+    """Tokens de input de la request, sin generar.
 
-    Solo modelos Claude y solo PDFs inline: count_tokens rechaza los archivos
-    de la Files API (400 "File sources are not supported"). Un PDF más grande
-    se cuenta por partes (troceo._contar_rango).
+    Claude: count_tokens (gratis). OpenAI: responses.input_tokens.count, con el
+    mismo input que la llamada (mismo procesamiento del PDF: texto e imagen de
+    cada página). Solo PDFs inline: count_tokens de Anthropic rechaza los
+    archivos de la Files API, y en OpenAI se usa el mismo tope para no subir un
+    archivo solo para contarlo. Un PDF más grande se cuenta por partes
+    (troceo._contar_rango).
     """
-    if not modelo.startswith("claude"):
-        raise ValueError(f"count_tokens es de Anthropic; '{modelo}' no es un modelo Claude")
     if not pdf_cabe_inline(pdf_base64):
-        raise ValueError("PDF demasiado grande para count_tokens inline: contarlo por partes")
+        raise ValueError("PDF demasiado grande para contar tokens inline: contarlo por partes")
+    if not modelo.startswith("claude"):
+        conteo_oa = get_client().responses.input_tokens.count(
+            model=modelo,
+            instructions=system_prompt,
+            input=cast(Any, _input_openai(user_prompt, _archivo_inline_openai(pdf_base64))),
+            **cast(Any, parametros_razonamiento_openai(settings.effort_llm)),
+        )
+        return conteo_oa.input_tokens
     conteo = get_client_anthropic().messages.count_tokens(
         model=modelo,
         system=system_prompt,
@@ -677,6 +689,57 @@ def _llamar_anthropic_batch(
                              campos_fallida=campos, error_parseo=error_parseo, **comunes)
 
 
+# OpenAI (API Responses). El SDK corta una request a los 10 minutos por defecto;
+# sin streaming, un informe largo con razonamiento puede tardar más.
+_TIMEOUT_OPENAI = httpx.Timeout(1800.0, connect=30.0)
+# Lo mismo que se le pide a Claude (max_tokens del stream).
+_MAX_TOKENS_SALIDA = 64000
+# Esfuerzo de razonamiento cuando EFFORT_LLM queda vacío (decisión del usuario
+# 2026-11-23). gpt-6.2-sol acepta low, medium, high, xhigh y max; rechaza none.
+EFFORT_OPENAI_POR_DEFECTO = "medium"
+
+
+def parametros_razonamiento_openai(effort: str = "") -> dict[str, Any]:
+    """`reasoning` de la request a OpenAI: EFFORT_LLM o el valor por defecto."""
+    return {"reasoning": {"effort": effort or EFFORT_OPENAI_POR_DEFECTO}}
+
+
+def _archivo_inline_openai(pdf_base64: str, filename: str = "documento.pdf") -> dict[str, Any]:
+    return {"type": "input_file", "filename": filename,
+            "file_data": f"data:application/pdf;base64,{pdf_base64}"}
+
+
+def _input_openai(user_prompt: str, archivo: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """El `input` de la API Responses: el PDF (si hay) y el prompt del usuario.
+    El system prompt va en `instructions`."""
+    contenido: list[dict[str, Any]] = [archivo] if archivo else []
+    contenido.append({"type": "input_text", "text": user_prompt})
+    return [{"role": "user", "content": contenido}]
+
+
+@contextmanager
+def _archivo_pdf_openai(
+    client: OpenAI, pdf_base64: str, filename: str
+) -> Iterator[tuple[dict[str, Any], str]]:
+    """El PDF como `input_file`: inline si cabe, si no subido a la Files API
+    (purpose «user_data»; la API acepta hasta 50 MB por archivo). El archivo
+    subido se borra al salir. Devuelve (parte del input, vía)."""
+    if pdf_cabe_inline(pdf_base64):
+        yield _archivo_inline_openai(pdf_base64, filename), "base64"
+        return
+    subido = client.files.create(
+        file=(filename, base64.b64decode(pdf_base64), "application/pdf"), purpose="user_data",
+    )
+    try:
+        yield {"type": "input_file", "file_id": subido.id}, "files_api"
+    finally:
+        try:
+            client.files.delete(subido.id)
+        except openai.APIError as exc:
+            # Como en Anthropic: no botar una respuesta ya pagada por la limpieza.
+            logger.warning("No se pudo borrar %s de la Files API de OpenAI: %s", subido.id, exc)
+
+
 def _llamar_openai(
     *,
     modelo: str,
@@ -687,88 +750,103 @@ def _llamar_openai(
     pdf_filename: str,
 ) -> tuple[T, dict[str, Any]]:
     client = get_client()
+    razonamiento = parametros_razonamiento_openai(settings.effort_llm)
 
-    user_content: list[dict[str, Any]] = []
-
-    if pdf_base64:
-        user_content.append({
-            "type": "file",
-            "file": {
-                "filename": pdf_filename,
-                "file_data": f"data:application/pdf;base64,{pdf_base64}",
-            },
-        })
-
-    user_content.append({"type": "text", "text": user_prompt})
-
-    messages: list[dict[str, Any]] = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_content},
-    ]
-
-    # Sin header de reintentos: parse() no expone el request (haría falta
-    # with_raw_response). Solo los códigos, por el hook del cliente.
-    t0 = time.monotonic()
-    with codigos_http_reintentados() as codigos_http:
+    with ExitStack() as pila:
+        archivo: dict[str, Any] | None = None
+        via_pdf: str | None = None
+        if pdf_base64:
+            archivo, via_pdf = pila.enter_context(
+                _archivo_pdf_openai(client, pdf_base64, pdf_filename))
+        # La subida y el borrado de la Files API quedan fuera del registro de
+        # reintentos: solo cuenta el request de generación, como en Anthropic.
+        codigos_http = pila.enter_context(codigos_http_reintentados())
+        t0 = time.monotonic()
         try:
-            completion = client.beta.chat.completions.parse(
+            response = client.responses.parse(
                 model=modelo,
-                messages=messages,  # type: ignore[arg-type]
-                response_format=response_model,
+                instructions=system_prompt,
+                input=cast(Any, _input_openai(user_prompt, archivo)),
+                text_format=response_model,
+                max_output_tokens=_MAX_TOKENS_SALIDA,
+                timeout=_TIMEOUT_OPENAI,
+                **cast(Any, razonamiento),
             )
-        except (openai.LengthFinishReasonError, openai.ContentFilterFinishReasonError) as exc:
-            # Respuesta pagada cortada por largo o por el filtro de contenido: el
-            # análogo del max_tokens de Anthropic. Viaja con su usage y su texto.
-            error = f"{type(exc).__name__}: {exc}"
-            cortada = getattr(exc, "completion", None)  # el error de filtro no la trae
-            uso_corte = cortada.usage if cortada is not None else None
-            texto = (cortada.choices[0].message.content
-                     if cortada is not None and cortada.choices else None)
-            raise LlamadaFallidaError(error, _meta_fallida(
-                modelo, error,
-                modelo_servido=cortada.model if cortada is not None else None,
-                tiempo_segundos=round(time.monotonic() - t0, 2),
-                tokens_prompt=uso_corte.prompt_tokens if uso_corte else None,
-                tokens_completion=uso_corte.completion_tokens if uso_corte else None,
-                tokens_total=uso_corte.total_tokens if uso_corte else None,
-                texto_crudo=texto,
-                codigos_http_reintentados=codigos_http,
+        except ValidationError as exc:
+            # El SDK valida el JSON al armar la respuesta: cortado o fuera del schema.
+            mensaje = (
+                f"El modelo devolvió una respuesta que no valida contra "
+                f"{response_model.__name__} (puede estar cortada por max_output_tokens o ser "
+                f"un rechazo): {exc}"
+            )
+            raise LlamadaFallidaError(mensaje, _meta_fallida(
+                modelo, mensaje, tiempo_segundos=round(time.monotonic() - t0, 2),
+                codigos_http_reintentados=list(codigos_http),
             )) from exc
         except Exception as exc:
             # Como en Anthropic: el error del SDK (p. ej. 429 tras sus reintentos)
             # sale tal cual, con la metadata de la llamada fallida.
-            _adjuntar_meta_fallida(exc, modelo, t0, codigos_http_reintentados=codigos_http)
+            _adjuntar_meta_fallida(exc, modelo, t0, codigos_http_reintentados=list(codigos_http))
             raise
-    elapsed = time.monotonic() - t0
-    message = completion.choices[0].message
+        elapsed = time.monotonic() - t0
 
-    if message.parsed is None:
-        error = f"El modelo rechazó la respuesta: {message.refusal}"
-        uso_oa = completion.usage
+    uso = response.usage
+    cache = (uso.input_tokens_details.cached_tokens or 0) if uso else 0
+    # tokens_prompt sin la caché, como en Anthropic: metricas_lote cobra la
+    # lectura de caché aparte (y tokens_total = prompt + completion).
+    tokens_prompt = (uso.input_tokens - cache) if uso else None
+    tokens_completion = uso.output_tokens if uso else None
+    tokens_total = (tokens_prompt + tokens_completion
+                    if tokens_prompt is not None and tokens_completion is not None else None)
+    razonamiento_tokens = uso.output_tokens_details.reasoning_tokens if uso else None
+    incompleta = getattr(response, "incomplete_details", None)
+    stop_reason = (getattr(incompleta, "reason", None) or response.status)
+    texto_raw = response.output_text or None
+    rechazo = next((parte.refusal for item in response.output
+                    if getattr(item, "type", None) == "message"
+                    for parte in getattr(item, "content", []) or []
+                    if getattr(parte, "type", None) == "refusal"), None)
+
+    error = None
+    if rechazo:
+        error = f"El modelo rechazó la solicitud: {rechazo}"
+    elif response.status != "completed":
+        error = f"Respuesta incompleta del modelo (status={response.status}, motivo={stop_reason})."
+    elif response.output_parsed is None:
+        error = f"El modelo no devolvió respuesta parseable (status={response.status})."
+    if error is not None:
         raise LlamadaFallidaError(error, _meta_fallida(
             modelo, error,
-            modelo_servido=completion.model,
+            modelo_servido=response.model,
+            stop_reason=stop_reason,
             tiempo_segundos=round(elapsed, 2),
-            tokens_prompt=uso_oa.prompt_tokens if uso_oa else None,
-            tokens_completion=uso_oa.completion_tokens if uso_oa else None,
-            tokens_total=uso_oa.total_tokens if uso_oa else None,
-            texto_crudo=message.content,
+            tokens_prompt=tokens_prompt,
+            tokens_completion=tokens_completion,
+            tokens_total=tokens_total,
+            tokens_cache_lectura=cache,
+            texto_crudo=texto_raw,
             codigos_http_reintentados=codigos_http,
         ))
 
     metadata: dict[str, Any] = {
         "modelo": modelo,
-        "modelo_servido": completion.model,
+        "modelo_servido": response.model,
+        "stop_reason": stop_reason,
         "codigos_http_reintentados": codigos_http,
         "tiempo_segundos": round(elapsed, 2),
-        "tokens_prompt": completion.usage.prompt_tokens if completion.usage else None,
-        "tokens_completion": completion.usage.completion_tokens if completion.usage else None,
-        "tokens_total": completion.usage.total_tokens if completion.usage else None,
+        "tokens_prompt": tokens_prompt,
+        "tokens_completion": tokens_completion,
+        "tokens_total": tokens_total,
+        "tokens_cache_lectura": cache,
+        "tokens_razonamiento": razonamiento_tokens,
+        "parametros_thinking": razonamiento,
         "schema_sha256": schema_sha256(response_model),
         "system_prompt": system_prompt,
         "user_prompt_text": user_prompt,
         "pdf_incluido": pdf_base64 is not None,
-        "response_raw": json.loads(message.content) if message.content else None,
+        "pdf_via": via_pdf,
+        "response_raw": json.loads(texto_raw) if texto_raw else None,
     }
-
-    return message.parsed, metadata
+    parsed = response.output_parsed
+    assert parsed is not None  # sin error, hay respuesta parseada
+    return parsed, metadata

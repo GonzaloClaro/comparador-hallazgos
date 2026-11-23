@@ -113,6 +113,39 @@ modelos:
         batch_input: 0.25
         batch_output: 1.25
 
+  gpt-6.2-sol:
+    proveedor: openai
+    recargo_contexto_largo: true
+    fuentes:
+      - url: https://developers.openai.com/api/docs/models/gpt-6.2-sol
+        fecha_consulta: "2026-11-23"
+        respalda: >-
+          input 2.00, cached input 0.10 y output 10.00; sobre 272K tokens de
+          entrada, input 4.00, cached input 0.20 y output 15.00 (entrada x2 y
+          salida x1,5 para toda la request)
+      - url: https://developers.openai.com/api/docs/pricing
+        fecha_consulta: "2026-11-23"
+        respalda: los mismos precios y la API de Batch a la mitad del precio estándar
+    notas: >-
+      Modelo por defecto desde el 2026-11-23 (decisión del usuario: OpenAI como
+      proveedor por defecto). El pipeline usa la API Responses; el cliente guarda
+      tokens_prompt ya sin los cached tokens, como en Anthropic. La API de Batch
+      del pipeline (CHECKLIST_BATCH) es solo para Claude: los precios de Batch
+      quedan anotados, no se usan.
+    tramos:
+      - hasta_tokens_prompt: 272000
+        input: 2.00
+        output: 10.00
+        cache_lectura: 0.10
+        batch_input: 1.00
+        batch_output: 5.00
+      - hasta_tokens_prompt: null
+        input: 4.00
+        output: 15.00
+        cache_lectura: 0.20
+        batch_input: 2.00
+        batch_output: 7.50
+
   text-embedding-3-large:
     proveedor: openai
     recargo_contexto_largo: false
