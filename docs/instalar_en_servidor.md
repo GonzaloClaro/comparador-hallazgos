@@ -147,7 +147,7 @@ ventana de PowerShell:
 $env:ANTHROPIC_API_KEY="x"; $env:OPENAI_API_KEY="x"; uv run pytest -q
 ```
 
-Debe terminar con una línea como `1777 passed, 15 skipped` y **ningún `failed`** (los números
+Debe terminar con una línea como `1745 passed, 47 skipped` y **ningún `failed`** (los números
 cambian un poco entre versiones). Los «skipped» son pruebas que necesitan los informes reales, que
 no vienen en el zip.
 
