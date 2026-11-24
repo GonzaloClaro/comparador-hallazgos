@@ -51,3 +51,5 @@ presentacion/
 samples/*
 !samples/*.py
 .claude/
+# Zip y guía para subir a Drive (copia de la versión pública, se regenera)
+entrega_drive/

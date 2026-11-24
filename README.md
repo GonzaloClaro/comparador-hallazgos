@@ -28,6 +28,12 @@ conectan, con diagramas, en [`ARQUITECTURA.md`](ARQUITECTURA.md).
   solo si se usa un modelo Claude (`MODELO_EXTRACCION=claude-opus-5-5`); la de OpenAI se necesita
   igual, porque los embeddings son siempre de OpenAI.
 
+## Instalación en un servidor del CEN
+
+Para dejarla corriendo en un servidor Windows, de modo que todo el equipo revisor entre desde el
+navegador: [`docs/instalar_en_servidor.md`](docs/instalar_en_servidor.md) (también va suelta,
+como `INSTALAR_EN_SERVIDOR.md`, junto al zip de la carpeta compartida).
+
 ## Instalación en Mac o Linux
 
 ```bash
