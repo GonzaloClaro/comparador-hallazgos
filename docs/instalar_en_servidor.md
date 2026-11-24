@@ -11,6 +11,9 @@ equipo revisor la use desde su navegador, sin instalar nada en su computador.
   Con 2 núcleos, 4 GB de RAM y unos 5 GB libres en disco sobra.
 - **La herramienta no tiene usuario ni contraseña.** Quien llegue a la dirección puede usarla, y
   cada informe procesado cuesta dinero. Debe quedar accesible solo dentro de la red del CEN.
+- **Las claves de API van solo en el archivo `.env` del servidor**, que se crea en la instalación
+  (paso 3.4). El zip no trae ninguna clave: sin poner la de OpenAI en `.env`, la herramienta abre
+  pero falla al procesar.
 - **No hace falta git.** El código llega como un zip (`comparador-hallazgos.zip`) en la carpeta
   compartida de Drive, junto a esta guía. El zip trae solo el código: ninguna clave, ningún
   informe real.
@@ -85,8 +88,10 @@ instala limpio al lado y la versión anterior queda de respaldo, sin borrar nada
    en «Procesamientos anteriores», copiar `C:\comparador_anterior\runs` a `C:\comparador\runs`
    (opcional).
 5. **El `.env` se crea nuevo** (paso 3.4), sin copiar el anterior: el nuevo trae explicados los
-   parámetros actuales y el modelo de OpenAI. Si el anterior tenía líneas agregadas a mano
-   (por ejemplo `RUNS_A_RETENER=50`), se vuelven a agregar.
+   parámetros actuales y el modelo de OpenAI. **Hay que poner en él la clave de API de OpenAI**
+   (`OPENAI_API_KEY=`, la de la Service account del CEN): la versión anterior usaba sobre todo la
+   de Anthropic, que ya no se necesita. Si el `.env` anterior tenía líneas agregadas a mano (por
+   ejemplo `RUNS_A_RETENER=50`), se vuelven a agregar.
 6. **La tarea programada no se toca:** apunta a `C:\comparador\run_streamlit.cmd`, que sigue en
    el mismo lugar. Iniciarla de nuevo (clic derecho → **Ejecutar**) y probar como en 3.6.
 7. **Borrar `C:\comparador_anterior`** cuando la versión nueva lleve unos días funcionando bien.
@@ -155,7 +160,9 @@ notepad .env
 
 En el Bloc de notas:
 
-1. Reemplazar `OPENAI_API_KEY=sk-...` por la clave de OpenAI del CEN.
+1. **Reemplazar `OPENAI_API_KEY=sk-...` por la clave de OpenAI del CEN** (la de la Service
+   account, Parte 1). Es obligatoria: el zip no trae ninguna clave. La clave no se envía por
+   correo ni chat; se pega directo en este archivo.
 2. Dejar `ANTHROPIC_API_KEY=` vacía y `MODELO_EXTRACCION=gpt-6.2-sol`.
 3. **Agregar al final** esta línea:
 
@@ -275,7 +282,8 @@ instalada»**.
 2. Detener la tarea (Programador de tareas → clic derecho → **Finalizar**).
 3. Copiar el contenido de la carpeta nueva **encima** de `C:\comparador`, reemplazando los
    archivos. El zip no trae `.env`, `runs`, `feedback`, `.venv` ni `.uv-cache`, así que esos
-   quedan intactos.
+   quedan intactos: **el `.env` conserva las claves**, no hay que volver a ponerlas. Solo se
+   edita si la clave cambió (por ejemplo, si se rotó en la consola de OpenAI).
 4. En PowerShell:
 
    ```powershell
