@@ -18,7 +18,7 @@ equipo revisor la use desde su navegador, sin instalar nada en su computador.
 | Parte | Quién | Tiempo aproximado |
 |---|---|---|
 | 1. Permisos y claves | Jefatura, seguridad de la información y TI | Depende de los trámites |
-| 2. Descargar el zip | Quien administra el servidor | 5 minutos |
+| 2. Descargar el zip (y, si ya hay una versión, apartarla) | Quien administra el servidor | 5 a 10 minutos |
 | 3. Instalar en el servidor | Quien administra el servidor | 30 minutos |
 | 4. Dejarla andando sola | Quien administra el servidor | 10 minutos |
 
@@ -62,6 +62,38 @@ equipo revisor la use desde su navegador, sin instalar nada en su computador.
 El zip no trae `.env` (las claves se ponen en el servidor, Parte 3.4), ni `.venv` (la
 instalación de Python y las librerías, que se crea en el servidor), ni informes reales. Las
 versiones exactas de todas las librerías van fijadas en `uv.lock`, dentro del zip.
+
+---
+
+## Si el servidor ya tiene una versión instalada
+
+Si `C:\comparador` ya existe (por ejemplo, la versión de noviembre de 2026, que llegó como la
+carpeta copiada desde el computador de alguien del equipo), **no copiar el zip encima**: esa
+carpeta trae archivos que la versión nueva ya no usa y un `.env` configurado para Claude. Se
+instala limpio al lado y la versión anterior queda de respaldo, sin borrar nada todavía:
+
+1. **Cerrar la herramienta:** cerrar la ventana negra o, si está como tarea programada,
+   Programador de tareas → clic derecho en la tarea → **Finalizar**.
+2. **Renombrar** `C:\comparador` a `C:\comparador_anterior` (clic derecho → Cambiar nombre). Si
+   Windows dice que la carpeta está en uso, cerrar las ventanas de PowerShell abiertas en ella o
+   reiniciar el servidor.
+3. **Instalar la versión nueva** siguiendo la Parte 3 completa, en `C:\comparador`. uv ya está
+   instalado: el paso 3.2 se puede saltar (basta comprobar `uv --version`).
+4. **Traer el trabajo del equipo:** copiar la carpeta `C:\comparador_anterior\feedback` a
+   `C:\comparador\feedback`. Tiene las marcas y observaciones del equipo revisor: es lo único
+   que no se puede recuperar. Si también se quieren seguir viendo los procesamientos anteriores
+   en «Procesamientos anteriores», copiar `C:\comparador_anterior\runs` a `C:\comparador\runs`
+   (opcional).
+5. **El `.env` se crea nuevo** (paso 3.4), sin copiar el anterior: el nuevo trae explicados los
+   parámetros actuales y el modelo de OpenAI. Si el anterior tenía líneas agregadas a mano
+   (por ejemplo `RUNS_A_RETENER=50`), se vuelven a agregar.
+6. **La tarea programada no se toca:** apunta a `C:\comparador\run_streamlit.cmd`, que sigue en
+   el mismo lugar. Iniciarla de nuevo (clic derecho → **Ejecutar**) y probar como en 3.6.
+7. **Borrar `C:\comparador_anterior`** cuando la versión nueva lleve unos días funcionando bien.
+   Antes de borrarla, confirmar que `C:\comparador\feedback` tiene lo mismo que la anterior.
+
+Si algo sale mal con la versión nueva, se vuelve atrás deteniendo la tarea y renombrando las
+carpetas al revés.
 
 ---
 
@@ -235,15 +267,15 @@ páginas, con Sol): no conviene procesar el mismo informe varias veces. Los proc
 
 ## Actualizar a una versión nueva
 
+Esto vale para pasar de un zip a otro más nuevo. Si lo instalado es la carpeta copiada de un
+computador del equipo (antes del zip), seguir **«Si el servidor ya tiene una versión
+instalada»**.
+
 1. Descargar el zip nuevo de Drive y descomprimirlo en una carpeta aparte.
 2. Detener la tarea (Programador de tareas → clic derecho → **Finalizar**).
 3. Copiar el contenido de la carpeta nueva **encima** de `C:\comparador`, reemplazando los
    archivos. El zip no trae `.env`, `runs`, `feedback`, `.venv` ni `.uv-cache`, así que esos
    quedan intactos.
-   - **Al pasar a la versión con OpenAI por defecto** (23 de noviembre de 2026): el `.env` no
-     cambia solo. Abrirlo (`notepad .env`) y cambiar la línea `MODELO_EXTRACCION=claude-opus-5-5`
-     por `MODELO_EXTRACCION=gpt-6.2-sol`. La clave de Anthropic puede quedar o borrarse: con un
-     modelo de OpenAI no se usa.
 4. En PowerShell:
 
    ```powershell
@@ -271,7 +303,7 @@ páginas, con Sol): no conviene procesar el mismo informe varias veces. Los proc
 | `uv sync` falla al descargar | El servidor no tiene salida a `pypi.org`, `files.pythonhosted.org` o `github.com` | Pedir a TI esa salida durante la instalación (Parte 1, punto 3) |
 | La pantalla abre en el servidor, pero no desde otro computador | Puerto 8501 cerrado en el firewall | Pedir a TI abrir el 8501 dentro de la red interna |
 | Al procesar: error de conexión o de clave | Sin salida a `api.openai.com` (o a `api.anthropic.com`, con Claude), o clave mal copiada en `.env` | Revisar `.env` y pedir a TI la salida a las APIs |
-| El error menciona Anthropic aunque se quería usar OpenAI | El `.env` sigue con `MODELO_EXTRACCION=claude-opus-5-5` | Cambiarlo a `gpt-6.2-sol` (ver «Actualizar a una versión nueva») y reiniciar la tarea |
+| El error menciona Anthropic aunque se quería usar OpenAI | El `.env` sigue con `MODELO_EXTRACCION=claude-opus-5-5` | Cambiarlo a `gpt-6.2-sol` en `.env` (ver «Cambiar de modelo») y reiniciar la tarea |
 | Error 429 (*rate limit*) con un informe largo | La cuenta de OpenAI tiene un límite de tokens por minuto bajo | Reintentar más tarde, o subir el nivel de la cuenta en platform.openai.com (Settings → Limits) |
 | Error de conexión aunque TI dice que la salida está abierta | El servidor sale a internet por un proxy y `run_streamlit.cmd` borra las variables de proxy (en la red de oficina el proxy bloqueaba las APIs) | En `run_streamlit.cmd`, borrar las líneas `set "HTTP_PROXY="` y `set "HTTPS_PROXY="` y definir el proxy que indique TI |
 | Desaparecen procesamientos de otras personas | `RUNS_A_RETENER` quedó sin configurar (por defecto, 3) | Agregar `RUNS_A_RETENER=50` en `.env` (sección 3.4) y reiniciar la tarea |
